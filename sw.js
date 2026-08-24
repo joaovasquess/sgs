@@ -1,4 +1,4 @@
-var CACHE = 'sgs-v1';
+var CACHE = 'sgs-v2';
 var ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function(e){
@@ -18,18 +18,33 @@ self.addEventListener('activate', function(e){
 
 self.addEventListener('fetch', function(e){
   if(e.request.method!=='GET') return;
+  var url = new URL(e.request.url);
+
+  // Página principal: SEMPRE busca a versão nova no servidor (network-first)
+  if(e.request.mode==='navigate' || /\/index\.html$/.test(url.pathname)){
+    e.respondWith(
+      fetch(e.request).then(function(net){
+        var clone = net.clone();
+        caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
+        return net;
+      }).catch(function(){
+        return caches.match(e.request).then(function(res){ return res || caches.match('./index.html'); });
+      })
+    );
+    return;
+  }
+
+  // Demais arquivos: usa a cópia salva (mais rápido), atualiza em segundo plano
   e.respondWith(
     caches.match(e.request).then(function(res){
       if(res) return res;
       return fetch(e.request).then(function(net){
-        if(net && net.status===200 && new URL(e.request.url).origin===location.origin){
+        if(net && net.status===200 && url.origin===location.origin){
           var clone = net.clone();
           caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
         }
         return net;
-      }).catch(function(){
-        if(e.request.mode==='navigate') return caches.match('./index.html');
-      });
+      }).catch(function(){});
     })
   );
 });
