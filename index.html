@@ -405,7 +405,7 @@ function cancelarMovimento(){ movendoId=null; $('moveHint').classList.remove('vi
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && movendoId!=null) cancelarMovimento(); });
 
 function limparParaJSON(key, value){
-  if(key==='_marker'||key==='_map') return undefined;
+  if(key.charAt(0)==='_') return undefined;
   return value;
 }
 
