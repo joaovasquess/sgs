@@ -162,7 +162,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v31 — PWA + Celular + Backup corrigido</div>
+  <div id="banner">Versão v32 — Backup por projeto + Mesclar</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -218,6 +218,11 @@
         <button id="btnExportar"><span id="icoBackup"></span> Backup</button>
         <button id="btnImportar"><span id="icoRestaurar"></span> Restaurar</button>
         <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnExportarProjeto" class="secondary"><span id="icoProjDown"></span> Backup projeto</button>
+        <button id="btnImportarProjeto" class="secondary"><span id="icoProjUp"></span> Restaurar projeto</button>
+        <input type="file" id="importProjeto" accept=".json" style="display:none">
       </div>
       <div class="row" style="margin-top:6px">
         <button id="btnExportarCSV" class="secondary"><span id="icoCsvDown"></span> CSV</button>
@@ -368,6 +373,8 @@ $('icoBackup').innerHTML=ic('backup');
 $('icoRestaurar').innerHTML=ic('restaurar');
 $('icoCsvDown').innerHTML=ic('backup');
 $('icoCsvUp').innerHTML=ic('restaurar');
+if($('icoProjDown'))$('icoProjDown').innerHTML=ic('backup');
+if($('icoProjUp'))$('icoProjUp').innerHTML=ic('restaurar');
 $('icoFabAdd').innerHTML=ic('mais');
 $('toggleBtn').innerHTML=ic('setaEsq');
 
@@ -857,6 +864,74 @@ function importar(file){
   reader.readAsText(file);
 }
 
+// ===== BACKUP E RESTAURAÇÃO POR PROJETO (com opção de mesclar) =====
+function exportarProjeto(){
+  var p=getProjetoAtual();
+  if(!p){ alert('Selecione um projeto primeiro.'); return; }
+  try{
+    var limpo=JSON.parse(JSON.stringify(p, limparParaJSON));
+    var payload={tipo:'projeto', versao:2, projeto:limpo};
+    var json=JSON.stringify(payload, null, 2);
+    var url=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+    var nome='projeto-'+p.nome.replace(/[^\w\-]+/g,'-').toLowerCase()+'-backup.json';
+    var kb=(json.length/1024).toFixed(0);
+    var modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML='<div style="background:#26292e;border:1px solid #3a3f46;padding:22px;border-radius:10px;max-width:440px;text-align:center;color:#e5e5e5;font-family:inherit">'
+      +'<h3 style="margin:0 0 10px;color:#fff">Backup do projeto pronto</h3>'
+      +'<p style="font-size:13px;margin:0 0 6px">Projeto: <b>'+p.nome+'</b></p>'
+      +'<p style="font-size:12px;color:#999;margin:0 0 14px">Tamanho: <b>'+kb+' KB</b></p>'
+      +'<a href="'+url+'" download="'+nome+'" style="display:inline-block;background:#4498DC;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700">Baixar backup do projeto</a>'
+      +'<br><button onclick="this.parentNode.parentNode.remove()" style="margin-top:14px;background:#3a3f46">Fechar</button>'
+      +'</div>';
+    document.body.appendChild(modal);
+    try{ var a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); document.body.removeChild(a); }catch(e){}
+  }catch(e){ alert('Erro ao gerar backup do projeto: '+e.message); }
+}
+
+function importarProjeto(file){
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      var proj=(d&&d.tipo==='projeto')?d.projeto:(d&&d.projeto?d.projeto:d);
+      if(!proj||!proj.nome||!Array.isArray(proj.mapas)) throw new Error('formato');
+      var nome=proj.nome;
+      var existente=projetos.find(function(x){return x.nome===nome;});
+      var mesclar=false;
+      if(existente){
+        mesclar=confirm('Já existe um projeto com o nome "'+nome+'".\n\nOK = Mesclar (substituir o projeto existente pelos dados do backup)\nCancelar = Criar cópia');
+      }
+      var novosMapas=[];
+      proj.mapas.forEach(function(m){
+        var novoMapa={id:proximoIdMapa++, nome:m.nome||'Mapa', imagem:m.imagem||null, larg:m.larg||null, alt:m.alt||null, itens:[]};
+        (m.itens||[]).forEach(function(i){
+          novoMapa.itens.push({id:proximoIdItem++, colocado:!!i.colocado, x:(i.x!=null?i.x:null), y:(i.y!=null?i.y:null), area:i.area||'', setor:i.setor||'', item:i.item||'', status:i.status||'PLANEJADO', material:i.material||'', largura:i.largura||null, altura:i.altura||null, arquivo:i.arquivo||'', obs:i.obs||'', fotos:Array.isArray(i.fotos)?i.fotos:[]});
+        });
+        novosMapas.push(novoMapa);
+      });
+      if(mesclar&&existente){
+        if(existente.mapas) existente.mapas.forEach(function(m){ if(m&&m.itens)m.itens.forEach(function(i){ if(i._marker){ delete i._marker; } }); });
+        existente.mapas=novosMapas;
+        projetoAtual=existente.id;
+        mapaAtual=novosMapas.length?novosMapas[0].id:null;
+        salvar(); renderizarTudo();
+        alert('Projeto "'+nome+'" mesclado (substituído) com sucesso.');
+      } else {
+        var base=nome, n=2;
+        while(projetos.some(function(x){return x.nome===base;})){ base=nome+' ('+n+')'; n++; }
+        var novo={id:proximoIdProjeto++, nome:base, mapas:novosMapas};
+        projetos.push(novo);
+        projetoAtual=novo.id;
+        mapaAtual=novosMapas.length?novosMapas[0].id:null;
+        salvar(); renderizarTudo();
+        alert('Projeto "'+nome+'" restaurado como "'+base+'".');
+      }
+    }catch(e){ alert('Arquivo inválido. Use um backup de projeto gerado pelo sistema.'); }
+  };
+  reader.readAsText(file);
+}
+
 $('tabMapa').onclick=function(){ mostrarAba('mapa'); };
 $('tabItens').onclick=function(){ mostrarAba('itens'); };
 $('fabAdd').onclick=function(){ if(modoArrastar)toggleArrastar(); editandoItem={_novo:true,colocado:false,fotos:[]}; abrirModal(); };
@@ -894,6 +969,9 @@ $('selCorPor').addEventListener('change',function(e){ corPor=e.target.value; sal
 $('btnExportar').onclick=exportar;
 $('btnImportar').onclick=function(){ if($('importFile'))$('importFile').click(); };
 $('importFile').addEventListener('change',function(e){ if(e.target.files[0])importar(e.target.files[0]); this.value=''; });
+$('btnExportarProjeto').onclick=exportarProjeto;
+$('btnImportarProjeto').onclick=function(){ if($('importProjeto'))$('importProjeto').click(); };
+$('importProjeto').addEventListener('change',function(e){ if(e.target.files[0])importarProjeto(e.target.files[0]); this.value=''; });
 $('btnExportarCSV').onclick=exportarCSV;
 $('btnImportarCSV').onclick=function(){ if($('importCSV'))$('importCSV').click(); };
 $('importCSV').addEventListener('change',function(e){ if(e.target.files[0])importarCSV(e.target.files[0]); this.value=''; });
