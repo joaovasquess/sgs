@@ -1,5 +1,5 @@
 var CACHE = 'sgs-v1';
-var ASSETS = ['./', './index.html', './manifest.json', './icon.svg', './logo.png'];
+var ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function(e){
   e.waitUntil(
