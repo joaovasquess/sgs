@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>SGS - Sistema de Geolocalização de Sinalização</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  /* ===== FONTES HELVETICA NEUE ===== */
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueThin.otf') format('opentype'); font-weight:100; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueLight.otf') format('opentype'); font-weight:300; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueRoman.otf') format('opentype'); font-weight:400; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueMedium.otf') format('opentype'); font-weight:500; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueBold.otf') format('opentype'); font-weight:700; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueHeavy.otf') format('opentype'); font-weight:800; }
+  @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueBlack.otf') format('opentype'); font-weight:900; }
+
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Helvetica Neue',Arial,sans-serif; font-weight:400; display:flex; height:100vh; color:#e5e5e5; overflow:hidden; background:#1b1e23; }
+  #sidebar { width:400px; min-width:320px; background:#23262b; display:flex; flex-direction:column; border-right:1px solid #333; transition:margin-left .3s ease; }
+  #sidebar.recolhida { margin-left:-400px; }
+  #toggleBtn { position:fixed; top:10px; left:410px; z-index:1500; background:#4498DC; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); transition:left .3s ease; line-height:0; display:flex; align-items:center; justify-content:center; }
+  #toggleBtn.recolhida { left:10px; }
+  #toggleBtn svg { width:15px; height:15px; }
+  #sidebar header { padding:14px; background:#F51E16; color:#fff; text-align:center; }
+  #sidebar header .logo-top { max-height:42px; margin-bottom:8px; background:transparent; border:none; border-radius:0; padding:0; filter:brightness(0) invert(1); }
+  #sidebar header h1 { margin:0; font-size:26px; letter-spacing:4px; font-weight:900; }
+  #sidebar header .sub { font-size:11px; color:#ffd9d6; margin-top:2px; letter-spacing:1px; font-weight:300; }
+  #banner { background:#743FD7; color:#fff; font-size:12px; padding:5px 14px; font-weight:700; text-align:center; }
+  #tabs { display:flex; background:#23262b; border-bottom:1px solid #333; }
+  #tabs button { flex:1; border:none; padding:10px; cursor:pointer; background:#23262b; font-weight:500; font-size:13px; color:#888; display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; }
+  #tabs button.ativo { background:#2c3036; color:#fff; border-bottom:3px solid #61D835; font-weight:700; }
+  .painel { display:none; }
+  .painel.visivel { display:block; }
+  .panel { padding:12px; border-bottom:1px solid #333; background:#23262b; }
+  .panel h3 { margin:0 0 8px; font-size:14px; color:#c9c9c9; font-weight:700; }
+  button { padding:7px 11px; cursor:pointer; border:none; border-radius:6px; background:#4498DC; color:#fff; font-size:13px; margin:2px; display:inline-flex; align-items:center; gap:5px; font-weight:500; font-family:inherit; }
+  button:hover { opacity:.9; }
+  button.secondary { background:#3a3f46; }
+  button.danger { background:#F51E16; }
+  button.ativo { background:#61D835; }
+  button svg { width:14px; height:14px; flex-shrink:0; }
+  select, input, textarea { width:100%; padding:6px; margin:3px 0; border:1px solid #3a3f46; border-radius:6px; font-size:13px; background:#2c3036; color:#e5e5e5; font-weight:400; font-family:inherit; }
+  select option { background:#2c3036; }
+  .row { display:flex; gap:6px; align-items:center; }
+  .row > * { flex:1; }
+  #map { flex:1; background:#3a3f46; position:relative; }
+  #itens { flex:1; overflow-y:auto; padding:10px; }
+  .item { padding:8px; background:#2c3036; border:1px solid #3a3f46; border-radius:6px; margin-bottom:6px; }
+  .item:hover { background:#33383f; }
+  .item.dragging { opacity:.5; }
+  .item b { font-weight:700; }
+  .item .meta { font-size:12px; color:#999; margin-top:3px; font-weight:300; }
+  .item .acoes { margin-top:5px; }
+  .item .acoes button { padding:4px 8px; font-size:12px; }
+  .item .acoes button svg { width:13px; height:13px; }
+  .grupo-titulo { font-weight:700; background:#33383f; color:#c9c9c9; padding:6px 8px; border-radius:6px; margin:8px 0 4px; font-size:12px; }
+  .filtros { display:flex; gap:6px; flex-wrap:wrap; }
+  .filtros select { flex:1; min-width:120px; }
+  .grupo-status { background:#26292e; border:1px solid #333; border-radius:8px; margin-bottom:8px; overflow:hidden; }
+  .grupo-status .cab { display:flex; align-items:center; padding:9px 10px; cursor:pointer; color:#e5e5e5; }
+  .grupo-status .cab:hover { background:#2c3036; }
+  .grupo-status .cab b { font-weight:700; }
+  .grupo-status .seta { transition:transform .2s; margin-right:7px; color:#4498DC; display:inline-flex; }
+  .grupo-status .seta svg { width:12px; height:12px; }
+  .grupo-status.aberto .seta { transform:rotate(90deg); }
+  .grupo-status .corpo { display:none; border-top:1px solid #333; padding:8px; }
+  .grupo-status.aberto .corpo { display:block; }
+  .badge-status { background:#3a3f46; color:#ccc; border-radius:10px; padding:1px 8px; font-size:11px; margin-left:6px; font-weight:700; }
+  .grupo-qtd { background:#2c3036; border:1px solid #3a3f46; border-radius:6px; margin-bottom:6px; overflow:hidden; }
+  .grupo-qtd .cab { display:flex; align-items:center; padding:8px; cursor:pointer; }
+  .grupo-qtd .cab:hover { background:#33383f; }
+  .grupo-qtd .cab b { font-weight:700; }
+  .grupo-qtd .seta { transition:transform .2s; margin-right:6px; color:#4498DC; display:inline-flex; }
+  .grupo-qtd .seta svg { width:12px; height:12px; }
+  .grupo-qtd.aberto .seta { transform:rotate(90deg); }
+  .grupo-qtd .subitens { display:none; border-top:1px solid #333; }
+  .grupo-qtd.aberto .subitens { display:block; }
+  .grupo-qtd .subitens .item { border:none; border-bottom:1px solid #333; border-radius:0; margin:0; padding-left:24px; }
+  .grupo-qtd .subitens .item:last-child { border-bottom:none; }
+  .badge-qtd { background:#743FD7; color:#fff; border-radius:10px; padding:1px 8px; font-size:11px; margin-left:6px; font-weight:700; }
+  #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); align-items:center; justify-content:center; z-index:1000; }
+  #modal.aberto { display:flex; }
+  #modal .card { background:#26292e; border:1px solid #3a3f46; padding:20px; border-radius:10px; width:380px; max-height:92vh; overflow-y:auto; }
+  #modal .card h3 { margin:0 0 12px; color:#fff; font-weight:700; }
+  #modal label { font-size:12px; color:#999; display:block; margin-top:8px; }
+  #modal .btnrow { display:flex; justify-content:flex-end; gap:6px; margin-top:14px; }
+  #previewModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:2000; align-items:center; justify-content:center; flex-direction:column; }
+  #previewModal.aberto { display:flex; }
+  #previewModal img, #previewModal iframe { max-width:90vw; max-height:80vh; background:#fff; }
+  #previewModal .fechar { position:absolute; top:15px; right:25px; font-size:32px; color:#fff; cursor:pointer; }
+  .cor-pin { width:14px; height:14px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+  .vazio { color:#8a8a8a; font-size:13px; text-align:center; padding:20px; }
+  .dica { font-size:11px; color:#8a8a8a; margin-top:4px; }
+  .pdf-opcoes { display:none; margin-top:6px; padding:8px; background:#2c3036; border-radius:6px; }
+  .pdf-opcoes.visivel { display:block; }
+  .pdf-opcoes label { font-size:12px; color:#999; display:block; margin-top:4px; }
+  .link-arquivo { font-size:12px; color:#4498DC; text-decoration:underline; cursor:pointer; font-weight:500; }
+  .medida { font-weight:700; color:#6cb8ec; }
+  .fotos-mini { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+  .foto-mini { width:44px; height:44px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #3a3f46; }
+  .foto-mini-add { width:44px; height:44px; border:2px dashed #555; border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#8a8a8a; font-size:20px; }
+  .leaflet-container { background:#3a3f46; font-family:inherit; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#26292e; color:#e5e5e5; border:1px solid #3a3f46; }
+  .leaflet-popup-content-wrapper { border-radius:8px; }
+  .leaflet-popup-content { color:#e5e5e5; font-family:inherit; }
+  .leaflet-bar a { background:#2c3036; color:#e5e5e5; border-bottom:1px solid #3a3f46; }
+  .leaflet-bar a:hover { background:#33383f; }
+  .leaflet-control-attribution { background:rgba(20,22,26,.8); color:#8a8a8a; }
+  #fabAdd { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:1200; background:linear-gradient(135deg,#4498DC,#743FD7); color:#fff; border:none; border-radius:999px; padding:14px 24px; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.6); display:flex; align-items:center; gap:8px; font-family:inherit; }
+  #fabAdd:hover { opacity:.92; }
+  #fabAdd svg { width:16px; height:16px; }
+  #moveHint { position:fixed; top:60px; left:50%; transform:translateX(-50%); z-index:1500; background:#743FD7; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); font-weight:500; }
+  #moveHint.visivel { display:block; }
+  .balao-botoes { display:flex; gap:6px; margin-top:8px; }
+  .balao-botoes button { flex:1; font-size:12px; padding:5px 8px; justify-content:center; }
+  .balao-botoes button svg { width:13px; height:13px; }
+  .leaflet-popup-content button svg { width:13px; height:13px; }
+  svg { width:14px; height:14px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<button id="toggleBtn" title="Recolher/expandir menu"></button>
+
+<div id="sidebar">
+  <header>
+    <img id="logoTop" class="logo-top" src="logo.png" alt="MULTI" onerror="this.style.display='none'">
+    <h1>SGS</h1>
+    <div class="sub">Sistema de Geolocalização de Sinalização</div>
+  </header>
+  <div id="banner">Versão v30 — SGS final</div>
+
+  <div id="tabs">
+    <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
+    <button id="tabItens"><span id="icoTabItens"></span> Itens</button>
+  </div>
+
+  <div id="painelMapa" class="painel visivel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel">
+      <h3>Projetos</h3>
+      <div class="row"><select id="selProjeto"></select></div>
+      <div class="row">
+        <button id="btnNovoProjeto"><span id="icoNovo"></span> Projeto</button>
+        <button id="btnRenomearProjeto" class="secondary"><span id="icoRenomear"></span></button>
+        <button id="btnExcluirProjeto" class="danger"><span id="icoExcluir"></span></button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Mapas do projeto</h3>
+      <div class="row"><select id="selMapa"></select></div>
+      <div class="row">
+        <button id="btnNovoMapa"><span id="icoNovoMapa"></span> Mapa</button>
+        <button id="btnRenomearMapa" class="secondary"><span id="icoRenomearMapa"></span></button>
+        <button id="btnExcluirMapa" class="danger"><span id="icoExcluirMapa"></span></button>
+      </div>
+      <input type="file" id="planta" accept="image/*,.pdf" style="margin-top:6px">
+      <p class="dica">Carregue imagem (PNG/JPG) ou PDF — preserva a proporção real</p>
+      <div class="pdf-opcoes" id="pdfOpcoes">
+        <label>Página do PDF (total: <span id="pdfTotalPaginas">0</span>)</label>
+        <select id="selPagina"></select>
+        <label>Escala de renderização</label>
+        <select id="selEscala">
+          <option value="1">1x</option><option value="2" selected>2x</option>
+          <option value="3">3x</option><option value="4">4x</option>
+        </select>
+        <button id="btnAplicarPDF" style="margin-top:6px">Aplicar ao mapa</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Edição no mapa</h3>
+      <div class="row">
+        <button id="btnArrastar"><span id="icoArrastar"></span> Arrastar pins</button>
+      </div>
+      <label style="margin-top:6px">Cor dos pins por</label>
+      <select id="selCorPor">
+        <option value="area">ÁREA</option>
+        <option value="material">MATERIAL</option>
+      </select>
+      <p class="dica">Use o botão fixo para adicionar. Posicione com Mover no balão ou no cartão.</p>
+    </div>
+    <div class="panel">
+      <h3>Sistema</h3>
+      <div class="row">
+        <button id="btnExportar"><span id="icoBackup"></span> Backup</button>
+        <button id="btnImportar"><span id="icoRestaurar"></span> Restaurar</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnExportarCSV" class="secondary"><span id="icoCsvDown"></span> CSV</button>
+        <button id="btnImportarCSV" class="secondary"><span id="icoCsvUp"></span> CSV</button>
+        <input type="file" id="importCSV" accept=".csv,.txt" style="display:none">
+      </div>
+    </div>
+  </div>
+
+  <div id="painelItens" class="painel" style="flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel">
+      <h3>Inventário de itens</h3>
+      <p class="dica">Itens no mapa ficam em "No mapa". Use Mover no balão ou no cartão para posicionar.</p>
+      <label>Agrupar por</label>
+      <select id="selGrupo">
+        <option value="">Sem agrupamento</option>
+        <option value="area">ÁREA</option>
+        <option value="setor">SETOR</option>
+        <option value="status">STATUS</option>
+      </select>
+      <div class="filtros" style="margin-top:6px">
+        <select id="filtroArea"><option value="">Todas as áreas</option></select>
+        <select id="filtroSetor"><option value="">Todos os setores</option></select>
+      </div>
+      <div class="filtros" style="margin-top:6px">
+        <select id="filtroStatus"><option value="">Todos os status</option></select>
+      </div>
+    </div>
+    <div id="itens"></div>
+  </div>
+</div>
+
+<div id="map"></div>
+<button id="fabAdd"><span id="icoFabAdd"></span> Adicionar item</button>
+<div id="moveHint">Clique no mapa para posicionar o item — ESC cancela</div>
+
+<div id="modal">
+  <div class="card">
+    <h3 id="modalTitulo">Novo item</h3>
+    <label>ÁREA</label><input id="fArea" placeholder="Ex: ÁREA EXTERNA">
+    <label>SETOR</label><input id="fSetor" placeholder="Ex: Pórtico Esplanada">
+    <label>ITEM</label><input id="fItem">
+    <label>STATUS</label>
+    <select id="fStatus">
+      <option>LEVAR DA GRÁFICA</option><option>JÁ NO LOCAL</option>
+      <option>APENAS BRANCO</option><option>APENAS FRENTE</option><option>PLANEJADO</option>
+    </select>
+    <label>MATERIAL</label><input id="fMaterial" placeholder="Ex: LONA COM ILHOIS">
+    <div class="row">
+      <div><label>Largura (m)</label><input id="fLargura" type="number" step="0.01"></div>
+      <div><label>Altura (m)</label><input id="fAltura" type="number" step="0.01"></div>
+    </div>
+    <label>Link do arquivo</label><input id="fArquivo" placeholder="https://drive.google.com/...">
+    <label>Fotos do local</label>
+    <input type="file" id="fFotosInput" accept="image/*" multiple style="margin-top:3px">
+    <div id="fFotosPrev" class="fotos-mini"></div>
+    <label>Observação</label><textarea id="fObs" rows="2"></textarea>
+    <div class="btnrow">
+      <button id="btnCancelar" class="secondary">Cancelar</button>
+      <button id="btnSalvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="previewModal">
+  <span class="fechar" onclick="fecharPreview()">✕</span>
+  <div id="previewConteudo"></div>
+</div>
+
+<script>
+// ===== ÍCONES SVG (placeholders — substituir pelos enviados) =====
+var ICONES = {
+  mapa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+  mais: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  editar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  excluir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  mover: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>',
+  removerMapa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/><line x1="15" y1="13" x2="19" y2="17"/><line x1="19" y1="13" x2="15" y2="17"/></svg>',
+  arquivo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  foto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  clipe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+  backup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  restaurar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  arrastar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  setaBaixo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  setaEsq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  setaDir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+};
+function ic(nome){ return ICONES[nome]||''; }
+
+// ===== CARREGA PDF.js DE FORMA OPCIONAL =====
+(function(){
+  try {
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=function(){ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=''; }catch(e){} };
+    document.head.appendChild(s);
+  } catch(e){}
+})();
+
+// ===== MAPA =====
+var map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 6, zoomControl:false });
+L.control.zoom({ position:'topright' }).addTo(map);
+map.fitBounds([[0,0],[1000,1000]]);
+
+var STORAGE_KEY='sistemaMapas_v30';
+var projetos=[], projetoAtual=null, mapaAtual=null;
+var proximoIdProjeto=1, proximoIdMapa=1, proximoIdItem=1;
+var editandoItem=null, modoArrastar=false, pdfBuffer=null, pdfTotalPaginas=0;
+var fotosNovas=[];
+var corPor='area';
+var movendoId=null;
+
+// ===== CORES DAS ÁREAS (paleta MULTI) =====
+var CORES_AREA={'ÁREA EXTERNA':'#4498DC','ÁREA COMUM':'#61D835','ESPAÇO DE SHOW':'#743FD7','CAMAROTE':'#F99FAA','ESTACIONAMENTO':'#F51E16','PLACAS JURÍDICAS':'#D5D112','GERAIS':'#8a8a8a','A&B':'#F99FAA'};
+
+// ===== CORES DOS MATERIAIS (paleta MULTI) =====
+var CORES_MATERIAL={
+  'LONA COM ILHOIS':'#4498DC','LONA COM METALON':'#4498DC','LONA COM METALON C NEONFLEX':'#4498DC','LONA SEM ACABAMENTO':'#4498DC','LONA':'#4498DC',
+  'ADESIVO BLACKOUT':'#743FD7','ADESIVO DE RECORTE':'#743FD7','ADESIVO':'#743FD7',
+  'PVC ADESIVADO 2MM':'#61D835','PVC ADESIVADO 1MM':'#61D835','PVC 2MM COM NEONFLEX':'#61D835','PVC':'#61D835',
+  'A4 PLASTIFICADO':'#D5D112','FOLHA A4 FRENTE':'#D5D112','A4':'#D5D112',
+  'UV COM ACABAMENTO':'#F99FAA',
+  'XPS':'#F51E16',
+  'DESINSTALAÇÃO':'#0A0A0A','DESINSTALACAO':'#0A0A0A',
+  'GERAL':'#0A0A0A','OUTROS':'#0A0A0A','':'#0A0A0A'
+};
+function corItem(item){
+  var chave;
+  if(corPor==='material'){
+    chave=((item.material||'').trim().toUpperCase());
+    for(var k in CORES_MATERIAL){ if(chave.indexOf(k.toUpperCase())>=0) return CORES_MATERIAL[k]; }
+    return '#0A0A0A';
+  }
+  chave=(item.area||'').trim().toUpperCase();
+  return CORES_AREA[chave]||'#8a8a8a';
+}
+function $(id){ return document.getElementById(id); }
+
+// ===== APLICA ÍCONES NOS BOTÕES ESTÁTICOS =====
+$('icoTabMapa').innerHTML=ic('mapa');
+$('icoTabItens').innerHTML=ic('lista');
+$('icoNovo').innerHTML=ic('mais');
+$('icoNovoMapa').innerHTML=ic('mais');
+$('icoRenomear').innerHTML=ic('editar');
+$('icoRenomearMapa').innerHTML=ic('editar');
+$('icoExcluir').innerHTML=ic('excluir');
+$('icoExcluirMapa').innerHTML=ic('excluir');
+$('icoArrastar').innerHTML=ic('arrastar');
+$('icoBackup').innerHTML=ic('backup');
+$('icoRestaurar').innerHTML=ic('restaurar');
+$('icoCsvDown').innerHTML=ic('backup');
+$('icoCsvUp').innerHTML=ic('restaurar');
+$('icoFabAdd').innerHTML=ic('mais');
+$('toggleBtn').innerHTML=ic('setaEsq');
+
+// ===== SIDEBAR RETRÁTIL =====
+function toggleSidebar(){
+  var sb=$('sidebar'), btn=$('toggleBtn');
+  var recolhida = sb.classList.toggle('recolhida');
+  btn.classList.toggle('recolhida', recolhida);
+  btn.innerHTML = recolhida ? ic('setaDir') : ic('setaEsq');
+  setTimeout(function(){ map.invalidateSize(); }, 350);
+}
+$('toggleBtn').onclick = toggleSidebar;
+
+// ===== TABS =====
+function mostrarAba(aba){
+  var mapa = aba==='mapa';
+  $('painelMapa').classList.toggle('visivel', mapa);
+  $('painelItens').classList.toggle('visivel', !mapa);
+  $('painelMapa').style.display = mapa ? 'flex' : 'none';
+  $('painelItens').style.display = mapa ? 'none' : 'flex';
+  $('tabMapa').classList.toggle('ativo', mapa);
+  $('tabItens').classList.toggle('ativo', !mapa);
+  if(!mapa) renderizarItens();
+}
+
+// ===== CLIQUE NO MAPA: só posiciona quando movendoId ativo =====
+map.on('click', function(e){ if(movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
+
+function colocarItemNoMapa(latlng){
+  var m=getMapaAtual(); if(!m) return;
+  var item=m.itens.find(function(i){ return i.id===movendoId; });
+  if(!item) return;
+  item.x=latlng.lng; item.y=latlng.lat; item.colocado=true;
+  movendoId=null; $('moveHint').classList.remove('visivel'); map.getContainer().style.cursor='';
+  salvar(); renderizarMapa(); renderizarItens();
+}
+function cancelarMovimento(){ movendoId=null; $('moveHint').classList.remove('visivel'); map.getContainer().style.cursor=''; }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && movendoId!=null) cancelarMovimento(); });
+
+// ===== PERSISTÊNCIA =====
+function salvar(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify({projetos:projetos,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,projetoAtual:projetoAtual,mapaAtual:mapaAtual,corPor:corPor})); }catch(e){} }
+function carregar(){
+  try{ var d=JSON.parse(localStorage.getItem(STORAGE_KEY)); if(d){ projetos=d.projetos||[]; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1; projetoAtual=d.projetoAtual||null; mapaAtual=d.mapaAtual||null; corPor=d.corPor||'area'; } }catch(e){ projetos=[]; }
+  if(!projetos.length) criarProjeto('Projeto 1');
+}
+function getProjeto(id){ return projetos.find(function(p){return p.id===id;}); }
+function getMapa(pid,mid){ var p=getProjeto(pid); return p?p.mapas.find(function(m){return m.id===mid;}):null; }
+function getProjetoAtual(){ return getProjeto(projetoAtual); }
+function getMapaAtual(){ return getMapa(projetoAtual,mapaAtual); }
+function criarProjeto(nome){ var p={id:proximoIdProjeto++,nome:nome,mapas:[]}; projetos.push(p); projetoAtual=p.id; return p; }
+function excluirProjeto(id){ projetos=projetos.filter(function(p){return p.id!==id;}); if(projetoAtual===id){ projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null; } }
+function criarMapa(pid,nome){ var p=getProjeto(pid); if(!p)return; var m={id:proximoIdMapa++,nome:nome,imagem:null,larg:null,alt:null,itens:[]}; p.mapas.push(m); mapaAtual=m.id; return m; }
+function excluirMapa(pid,mid){ var p=getProjeto(pid); if(!p)return; p.mapas=p.mapas.filter(function(m){return m.id!==mid;}); if(mapaAtual===mid) mapaAtual=p.mapas.length?p.mapas[0].id:null; }
+
+// ===== RENDERIZAÇÃO =====
+function renderizarTudo(){ renderizarProjetos(); renderizarMapas(); renderizarFiltros(); renderizarMapa(); renderizarItens(); atualizarBotaoArrastar(); if($('selCorPor'))$('selCorPor').value=corPor; }
+function renderizarProjetos(){ var sel=$('selProjeto'); if(!sel)return; sel.innerHTML=''; projetos.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.nome; if(p.id===projetoAtual)o.selected=true; sel.appendChild(o); }); }
+function renderizarMapas(){ var sel=$('selMapa'); if(!sel)return; sel.innerHTML=''; var p=getProjetoAtual(); if(p)p.mapas.forEach(function(m){ var o=document.createElement('option'); o.value=m.id; o.textContent=m.nome; if(m.id===mapaAtual)o.selected=true; sel.appendChild(o); }); }
+function preencherSelect(id,valores,rotulo){ var sel=$(id); if(!sel)return; var atual=sel.value; sel.innerHTML='<option value="">'+rotulo+'</option>'; valores.forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value=atual; }
+function renderizarFiltros(){
+  var todos=[]; projetos.forEach(function(p){p.mapas.forEach(function(m){m.itens.forEach(function(i){todos.push(i);});});});
+  var areas=[],setores=[],status=[];
+  todos.forEach(function(i){ if(i.area&&areas.indexOf(i.area)<0)areas.push(i.area); if(i.setor&&setores.indexOf(i.setor)<0)setores.push(i.setor); if(i.status&&status.indexOf(i.status)<0)status.push(i.status); });
+  preencherSelect('filtroArea',areas,'Todas as áreas'); preencherSelect('filtroSetor',setores,'Todos os setores'); preencherSelect('filtroStatus',status,'Todos os status');
+}
+
+function renderizarMapa(){
+  var m=getMapaAtual();
+  map.eachLayer(function(l){ if(l instanceof L.Marker||l instanceof L.ImageOverlay) map.removeLayer(l); });
+  var bounds;
+  if(m&&m.larg&&m.alt){ bounds=[[0,0],[m.alt,m.larg]]; }
+  else { bounds=[[0,0],[1000,1000]]; }
+  if(m&&m.imagem){ L.imageOverlay(m.imagem,bounds).addTo(map); }
+  map.fitBounds(bounds);
+  if(m)m.itens.forEach(function(i){ if(i.colocado) adicionarPin(i); });
+}
+
+function adicionarPin(item){
+  var cor=corItem(item);
+  var icone=L.divIcon({html:'<div style="background:'+cor+';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5)"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
+  var marker=L.marker([item.y,item.x],{icon:icone,draggable:modoArrastar}).addTo(map);
+  var med=(item.largura&&item.altura)?('<b>'+item.largura+' x '+item.altura+' m</b>'):'';
+  var rotuloCor = corPor==='material' ? 'Material: '+(item.material||'-') : 'Área: '+(item.area||'-');
+  var caixaAnexos='';
+  var temArquivo = item.arquivo ? true : false;
+  var temFotos = (item.fotos&&item.fotos.length) ? true : false;
+  if(temArquivo||temFotos){
+    caixaAnexos='<div style="border:1px solid #3a3f46;border-radius:8px;padding:8px;margin-top:8px;background:#2c3036">'
+      +'<b style="font-size:12px;color:#c9c9c9;display:flex;align-items:center;gap:5px">'+ic('clipe')+' Anexos</b><div style="margin-top:5px">';
+    if(temArquivo) caixaAnexos+='<button onclick="abrirPreview(\''+item.arquivo.replace(/'/g,"\'")+'\')" style="width:100%;margin:2px 0;justify-content:center">'+ic('arquivo')+' Ver arquivo</button>';
+    if(temFotos) caixaAnexos+='<button onclick="abrirFoto('+item.id+',0)" style="width:100%;margin:2px 0;justify-content:center">'+ic('foto')+' Ver '+item.fotos.length+' foto(s)</button>';
+    caixaAnexos+='</div></div>';
+  }
+  var botoesBalao='<div class="balao-botoes">'
+    +'<button onclick="iniciarMovimento('+item.id+')">'+ic('mover')+' Mover</button>'
+    +'<button onclick="removerDoMapa('+item.id+')" class="danger">'+ic('removerMapa')+'</button>'
+    +'</div>';
+  marker.bindPopup('<b>'+item.item+'</b><br><span style="color:'+cor+'">●</span> '+rotuloCor+'<br>Status: '+(item.status||'-')+'<br>Medidas: '+(med||'-')+(item.obs?'<br>Obs: '+item.obs:'')+caixaAnexos+botoesBalao);
+  marker.on('click',function(){destacaLista(item.id);});
+  marker.on('dragend',function(e){ var pos=e.target.getLatLng(); item.x=pos.lng; item.y=pos.lat; salvar(); e.target.closePopup(); e.target.openPopup(); });
+  item._marker=marker;
+}
+
+function removerDoMapa(id){
+  var m=getMapaAtual(); if(!m) return;
+  var item=m.itens.find(function(i){return i.id===id;});
+  if(!item) return;
+  item.colocado=false; item.x=null; item.y=null;
+  salvar(); renderizarMapa(); renderizarItens();
+}
+window.removerDoMapa = removerDoMapa;
+
+function atualizarBotaoArrastar(){ var b=$('btnArrastar'); if(!b)return; b.classList.toggle('ativo',modoArrastar); b.innerHTML=ic('arrastar')+' '+(modoArrastar?'Arrastar ativo':'Arrastar pins'); }
+function toggleArrastar(){
+  modoArrastar=!modoArrastar; atualizarBotaoArrastar();
+  var m=getMapaAtual();
+  if(m)m.itens.forEach(function(i){ if(i._marker){ i._marker.options.draggable=modoArrastar; try{ if(i._marker.dragging) i._marker.dragging[modoArrastar?'enable':'disable'](); }catch(e){} } });
+}
+
+// ===== INVENTÁRIO =====
+function renderizarItens(){
+  var box=$('itens'); if(!box)return; box.innerHTML='';
+  var m=getMapaAtual();
+  if(!m){ box.innerHTML='<div class="vazio">Crie um mapa para começar</div>'; return; }
+  var fa=$('filtroArea')?$('filtroArea').value:'', fs=$('filtroSetor')?$('filtroSetor').value:'', fst=$('filtroStatus')?$('filtroStatus').value:'';
+  var itens=m.itens.filter(function(i){return (!fa||i.area===fa)&&(!fs||i.setor===fs)&&(!fst||i.status===fst);});
+  if(!itens.length){ box.innerHTML='<div class="vazio">Nenhum item. Importe um CSV na aba Mapa ou use o botão Adicionar.</div>'; return; }
+  var colocados = itens.filter(function(i){return i.colocado;});
+  var naoColocados = itens.filter(function(i){return !i.colocado;});
+  if(colocados.length) box.appendChild(criarGrupoStatus(ic('pin')+' No mapa', colocados, true));
+  if(naoColocados.length) box.appendChild(criarGrupoStatus(ic('setaBaixo')+' Para colocar', naoColocados, false));
+}
+
+function criarGrupoStatus(titulo, lista, aberto){
+  var div=document.createElement('div');
+  div.className='grupo-status'+(aberto?' aberto':'');
+  var cab=document.createElement('div'); cab.className='cab';
+  var seta=document.createElement('span'); seta.className='seta'; seta.innerHTML=ic('chevron');
+  cab.appendChild(seta);
+  var lbl=document.createElement('b'); lbl.innerHTML=titulo;
+  cab.appendChild(lbl);
+  var badge=document.createElement('span'); badge.className='badge-status'; badge.textContent=lista.length;
+  cab.appendChild(badge);
+  cab.onclick=function(){ div.classList.toggle('aberto'); };
+  div.appendChild(cab);
+  var corpo=document.createElement('div'); corpo.className='corpo';
+  criarListaAgrupada(lista).forEach(function(n){ corpo.appendChild(n); });
+  div.appendChild(corpo);
+  return div;
+}
+
+function criarListaAgrupada(lista){
+  var box=[];
+  var grupo=$('selGrupo')?$('selGrupo').value:'';
+  if(grupo){
+    var grupos={};
+    lista.forEach(function(i){ var chave=i[grupo]||'(sem)'; if(!grupos[chave])grupos[chave]=[]; grupos[chave].push(i); });
+    Object.keys(grupos).sort().forEach(function(chave){
+      var gt=document.createElement('div'); gt.className='grupo-titulo'; gt.textContent=chave+' ('+grupos[chave].length+')';
+      box.push(gt);
+      agruparPorQtd(grupos[chave]).forEach(function(n){ box.push(n); });
+    });
+  } else {
+    agruparPorQtd(lista).forEach(function(n){ box.push(n); });
+  }
+  return box;
+}
+
+function agruparPorQtd(lista){
+  var nodes=[];
+  var gruposQtd={};
+  lista.forEach(function(i){
+    var base = i.item.replace(/\s\(\d+\)$/,'');
+    if(!gruposQtd[base]) gruposQtd[base]=[];
+    gruposQtd[base].push(i);
+  });
+  Object.keys(gruposQtd).sort().forEach(function(base){
+    nodes.push(criarGrupoItem(base, gruposQtd[base]));
+  });
+  return nodes;
+}
+
+function criarGrupoItem(base, lista){
+  var cor = corItem(lista[0]);
+  var qtd = lista.length;
+  var div = document.createElement('div');
+  div.className = 'grupo-qtd';
+  div.dataset.base = base;
+  var cab = document.createElement('div'); cab.className='cab';
+  if(qtd>1){
+    var seta=document.createElement('span'); seta.className='seta'; seta.innerHTML=ic('chevron');
+    cab.appendChild(seta);
+  }
+  var dot=document.createElement('span'); dot.className='cor-pin'; dot.style.background=cor;
+  cab.appendChild(dot);
+  var nome=document.createElement('b'); nome.textContent=base+(qtd>1?' ('+qtd+')':'');
+  cab.appendChild(nome);
+  if(qtd>1){
+    var badge=document.createElement('span'); badge.className='badge-qtd'; badge.textContent=qtd;
+    cab.appendChild(badge);
+  }
+  cab.onclick=function(){ div.classList.toggle('aberto'); };
+  div.appendChild(cab);
+  var sub=document.createElement('div'); sub.className='subitens';
+  lista.forEach(function(item){ sub.appendChild(criarCardItem(item)); });
+  div.appendChild(sub);
+  return div;
+}
+
+function criarCardItem(item){
+  var cor=corItem(item);
+  var div=document.createElement('div'); div.className='item'; div.dataset.id=item.id;
+  var med=(item.largura&&item.altura)?('<span class="medida">'+item.largura+'x'+item.altura+'m</span>'):'';
+  var nfotos = (item.fotos&&item.fotos.length)?(' • '+item.fotos.length+' foto(s)'):'';
+  div.innerHTML='<span class="cor-pin" style="background:'+cor+'"></span><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+' • '+(item.status||'-')+(med?' • '+med:'')+nfotos+'</div><div class="acoes">'
+    +'<button data-acao="mover" style="background:#4498DC">'+ic('mover')+' Mover</button>'
+    +'<button data-acao="editar" class="secondary">'+ic('editar')+'</button>'
+    +'<button data-acao="excluir" class="danger">'+ic('excluir')+'</button>'
+    +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+'</button>':'')
+    +'<button data-acao="fotos" class="secondary">'+ic('foto')+'</button>'
+    +'</div>';
+  div.onclick=function(e){ if(e.target.dataset.acao)return; if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); if(item._marker)item._marker.openPopup(); } };
+  var bm=div.querySelector('[data-acao="mover"]'); if(bm)bm.onclick=function(e){ e.stopPropagation(); iniciarMovimento(item.id); };
+  var be=div.querySelector('[data-acao="editar"]'); if(be)be.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
+  var bx=div.querySelector('[data-acao="excluir"]'); if(bx)bx.onclick=function(e){ e.stopPropagation(); excluirItem(item.id); };
+  var bp=div.querySelector('[data-acao="preview"]'); if(bp)bp.onclick=function(e){ e.stopPropagation(); abrirPreview(item.arquivo); };
+  var bf=div.querySelector('[data-acao="fotos"]'); if(bf)bf.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
+  return div;
+}
+
+function iniciarMovimento(id){ movendoId=id; $('moveHint').classList.add('visivel'); map.getContainer().style.cursor='crosshair'; }
+window.iniciarMovimento = iniciarMovimento;
+function destacaLista(id){ var el=document.querySelector('.item[data-id="'+id+'"]'); if(el){ el.style.outline='2px solid #4498DC'; setTimeout(function(){el.style.outline='';},1500); } }
+function excluirItem(id){ var m=getMapaAtual(); if(!m)return; m.itens=m.itens.filter(function(i){return i.id!==id;}); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros(); }
+
+// ===== FOTOS =====
+function abrirFoto(id, idx){
+  var m=getMapaAtual(); if(!m)return;
+  var item=m.itens.find(function(i){return i.id===id;}); if(!item||!item.fotos||!item.fotos.length)return;
+  var foto=item.fotos[idx];
+  $('previewConteudo').innerHTML='<img src="'+foto+'" style="max-width:90vw;max-height:80vh">';
+  $('previewModal').classList.add('aberto');
+}
+window.abrirFoto = abrirFoto;
+function renderFotosPrev(){
+  var box=$('fFotosPrev'); if(!box)return; box.innerHTML='';
+  fotosNovas.forEach(function(f,i){
+    var img=document.createElement('img'); img.className='foto-mini'; img.src=f;
+    img.onclick=function(){ abrirFotoTemp(i); };
+    box.appendChild(img);
+  });
+  var add=document.createElement('div'); add.className='foto-mini-add'; add.textContent='+';
+  add.onclick=function(){ $('fFotosInput').click(); };
+  box.appendChild(add);
+}
+function abrirFotoTemp(i){ $('previewConteudo').innerHTML='<img src="'+fotosNovas[i]+'" style="max-width:90vw;max-height:80vh">'; $('previewModal').classList.add('aberto'); }
+
+// ===== PRÉ-VISUALIZAÇÃO =====
+function extrairDriveId(url){ var m = String(url).match(/[-\w]{25,}/); return m ? m[0] : null; }
+function abrirPreview(url){
+  if(!url){ alert('Este item não tem link de arquivo.'); return; }
+  var conteudo=$('previewConteudo');
+  var id=extrairDriveId(url);
+  if(id){
+    conteudo.innerHTML='<img src="https://drive.google.com/thumbnail?id='+id+'&sz=w1200" onerror="this.style.display=\'none\'; document.getElementById(\'previewFallback\').style.display=\'block\'" style="max-width:90vw;max-height:80vh"><div id="previewFallback" style="display:none;color:#fff;text-align:center;padding:20px">Não foi possível gerar a prévia.<br><a href="'+url+'" target="_blank" style="color:#6cb8ec">Abrir arquivo original</a></div>';
+  } else {
+    conteudo.innerHTML='<iframe src="'+url+'" style="width:90vw;height:80vh;border:none;background:#fff"></iframe>';
+  }
+  $('previewModal').classList.add('aberto');
+}
+window.abrirPreview = abrirPreview;
+function fecharPreview(){ $('previewModal').classList.remove('aberto'); $('previewConteudo').innerHTML=''; }
+window.fecharPreview = fecharPreview;
+
+// ===== MODAL =====
+function abrirModal(){
+  var m=getMapaAtual(); if(!m){ alert('Crie um mapa primeiro.'); return; }
+  var e=editandoItem;
+  fotosNovas = (e&&e.fotos)?e.fotos.slice():[];
+  if($('modalTitulo'))$('modalTitulo').textContent=(e&&!e._novo)?'Editar item':'Novo item';
+  if($('fArea'))$('fArea').value=(e&&!e._novo)?(e.area||''):'';
+  if($('fSetor'))$('fSetor').value=(e&&!e._novo)?(e.setor||''):'';
+  if($('fItem'))$('fItem').value=(e&&!e._novo)?e.item:'';
+  if($('fStatus'))$('fStatus').value=(e&&!e._novo)?(e.status||'PLANEJADO'):'PLANEJADO';
+  if($('fMaterial'))$('fMaterial').value=(e&&!e._novo)?(e.material||''):'';
+  if($('fLargura'))$('fLargura').value=(e&&!e._novo)?(e.largura||''):'';
+  if($('fAltura'))$('fAltura').value=(e&&!e._novo)?(e.altura||''):'';
+  if($('fArquivo'))$('fArquivo').value=(e&&!e._novo)?(e.arquivo||''):'';
+  if($('fObs'))$('fObs').value=(e&&!e._novo)?(e.obs||''):'';
+  renderFotosPrev();
+  if($('modal'))$('modal').classList.add('aberto');
+  if($('fArea'))$('fArea').focus();
+}
+function fecharModal(){ if($('modal'))$('modal').classList.remove('aberto'); editandoItem=null; fotosNovas=[]; }
+function salvarItem(){
+  var m=getMapaAtual(); if(!m)return;
+  if(!$('fItem'))return;
+  var item=$('fItem').value.trim();
+  if(!item){ alert('Informe o ITEM.'); return; }
+  var dados={ area:$('fArea')?$('fArea').value.trim():'', setor:$('fSetor')?$('fSetor').value.trim():'', item:item, status:$('fStatus')?$('fStatus').value:'PLANEJADO', material:$('fMaterial')?$('fMaterial').value.trim():'', largura:$('fLargura')?parseFloat($('fLargura').value)||null:null, altura:$('fAltura')?parseFloat($('fAltura').value)||null:null, arquivo:$('fArquivo')?$('fArquivo').value.trim():'', obs:$('fObs')?$('fObs').value.trim():'', fotos:fotosNovas.slice() };
+  if(editandoItem&&!editandoItem._novo){ for(var k in dados) editandoItem[k]=dados[k]; }
+  else {
+    m.itens.push({id:proximoIdItem++,colocado:false,x:null,y:null,area:dados.area,setor:dados.setor,item:dados.item,status:dados.status,material:dados.material,largura:dados.largura,altura:dados.altura,arquivo:dados.arquivo,obs:dados.obs,fotos:dados.fotos});
+  }
+  fecharModal(); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
+  mostrarAba('itens');
+}
+
+// ===== PDF =====
+function temPdfJs(){ return typeof window.pdfjsLib!=='undefined'; }
+async function carregarPDF(data){
+  if(!temPdfJs()){ alert('PDF.js não carregou (bloqueado por segurança). Use PNG/JPG.'); return; }
+  try{
+    var pdf=await pdfjsLib.getDocument({data:data,disableWorker:true}).promise;
+    pdfBuffer=data; pdfTotalPaginas=pdf.numPages;
+    if($('pdfTotalPaginas'))$('pdfTotalPaginas').textContent=pdfTotalPaginas;
+    var sel=$('selPagina'); if(sel){ sel.innerHTML=''; for(var i=1;i<=pdfTotalPaginas;i++){ var o=document.createElement('option'); o.value=i; o.textContent='Página '+i; sel.appendChild(o); } }
+    if($('pdfOpcoes'))$('pdfOpcoes').classList.add('visivel');
+  }catch(err){ alert('Não foi possível ler o PDF: '+err.message); }
+}
+async function aplicarPDF(){
+  var m=getMapaAtual(); if(!m)return;
+  if(!pdfBuffer){ alert('Carregue um PDF primeiro.'); return; }
+  if(!temPdfJs()){ alert('PDF.js não carregou. Use PNG/JPG.'); return; }
+  var pagina=Number($('selPagina')?$('selPagina').value:1)||1;
+  var escala=Number($('selEscala')?$('selEscala').value:2)||2;
+  try{
+    var pdf=await pdfjsLib.getDocument({data:pdfBuffer,disableWorker:true}).promise;
+    var page=await pdf.getPage(pagina);
+    var viewport=page.getViewport({scale:escala});
+    var canvas=document.createElement('canvas'); canvas.width=viewport.width; canvas.height=viewport.height;
+    var ctx=canvas.getContext('2d');
+    await page.render({canvasContext:ctx,viewport:viewport}).promise;
+    m.imagem=canvas.toDataURL('image/png'); m.larg=canvas.width; m.alt=canvas.height;
+    salvar(); renderizarMapa();
+    alert('Página '+pagina+' aplicada (escala '+escala+'x).');
+  }catch(err){ alert('Erro ao renderizar o PDF: '+err.message); }
+}
+
+// ===== CSV =====
+function normalizar(s){ return (s||'').trim().toLowerCase().replace(/[áàâãä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòôõö]/g,'o').replace(/[úùûü]/g,'u').replace(/ç/g,'c').replace(/[^a-z0-9]/g,''); }
+function detectarDelim(texto){
+  var linhas = texto.split(/\r?\n/).filter(function(l){ return l.trim()!==''; });
+  var amostra = linhas.slice(0,5).join('\n');
+  var v=(amostra.match(/,/g)||[]).length, pv=(amostra.match(/;/g)||[]).length, t=(amostra.match(/\t/g)||[]).length, p=(amostra.match(/\|/g)||[]).length;
+  if(pv>v&&pv>=t&&pv>=p) return ';';
+  if(t>v&&t>=pv&&t>=p) return '\t';
+  if(p>v&&p>=pv&&p>=t) return '|';
+  return ',';
+}
+function num(v){ if(v==null) return null; var s = String(v).trim().replace(/[^\d.,-]/g,'').replace(',','.'); var n = parseFloat(s); return isNaN(n) ? null : n; }
+function escapaCSV(v){ v=(v==null?'':String(v)); return /[",\n;|]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+
+function exportarCSV(){
+  var m=getMapaAtual();
+  if(!m||!m.itens.length){ alert('Nenhum item para exportar no mapa atual.'); return; }
+  var linhas=[['AREA','SETOR','ITEM','STATUS','MATERIAL','Largura','Altura','QTD','ARQUIVO','OBSERVACAO','X','Y'].join(',')];
+  var agrup={};
+  m.itens.forEach(function(i){ var base=i.item.replace(/\s\(\d+\)$/,''); var chave=[i.area,i.setor,base,i.status,i.material,i.largura,i.altura,i.arquivo,i.obs].join('|'); if(!agrup[chave]) agrup[chave]={area:i.area,setor:i.setor,item:base,status:i.status,material:i.material,largura:i.largura,altura:i.altura,arquivo:i.arquivo,obs:i.obs,x:i.x,y:i.y,qtd:0}; agrup[chave].qtd++; });
+  for(var k in agrup){ var i=agrup[k]; linhas.push([escapaCSV(i.area),escapaCSV(i.setor),escapaCSV(i.item),escapaCSV(i.status),escapaCSV(i.material),i.largura||'',i.altura||'',i.qtd,escapaCSV(i.arquivo),escapaCSV(i.obs),i.x,i.y].join(',')); }
+  var blob=new Blob(['\ufeff'+linhas.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(m.nome||'mapa')+'-itens.csv'; a.click();
+}
+
+function importarCSV(file){
+  var m=getMapaAtual();
+  if(!m){ alert('Selecione um mapa antes de importar.'); return; }
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var texto=ev.target.result.replace(/^\ufeff/,'');
+    var delim=detectarDelim(texto);
+    var linhas=parseCSV(texto,delim);
+    if(!linhas.length){ alert('CSV vazio.'); return; }
+    var linhaCab = -1;
+    for (var i=0; i<Math.min(linhas.length,10); i++) {
+      if (linhas[i].some(function(c){ return normalizar(c)==='item'; })) { linhaCab=i; break; }
+    }
+    if (linhaCab<0) {
+      var amostra = linhas.slice(0,3).map(function(l){ return l.join(delim); }).join('\n');
+      alert('Coluna "ITEM" não encontrada.\n\nPrimeiras linhas do arquivo:\n'+amostra+'\n\nDelimitador detectado: "'+(delim==='\t'?'tab':delim)+'"');
+      return;
+    }
+    var cab=linhas[linhaCab].map(normalizar);
+    var linhaSub = linhaCab + 1;
+    var subCab = (linhaSub < linhas.length) ? linhas[linhaSub].map(normalizar) : [];
+    var temSubCab = subCab.some(function(c){ return c==='largura' || c==='altura'; });
+    function acharColuna(nomes, arr){
+      arr = arr || cab;
+      for(var j=0;j<nomes.length;j++){
+        var idx=arr.indexOf(nomes[j]);
+        if(idx>=0) return idx;
+      }
+      return -1;
+    }
+    var idx={
+      area: acharColuna(['area']),
+      setor: acharColuna(['setor']),
+      item: acharColuna(['item']),
+      status: acharColuna(['status']),
+      material: acharColuna(['material']),
+      largura: temSubCab ? acharColuna(['largura'], subCab) : acharColuna(['largura','larg','l']),
+      altura: temSubCab ? acharColuna(['altura'], subCab) : acharColuna(['altura','alt','a']),
+      qtd: acharColuna(['qtd','quantidade','qtde']),
+      arquivo: acharColuna(['arquivo','link','url','file']),
+      obs: acharColuna(['observacao','obs','observacoes']),
+      x: acharColuna(['x']),
+      y: acharColuna(['y'])
+    };
+    var inicioDados = temSubCab ? linhaSub + 1 : linhaCab + 1;
+    var cont=0;
+    for(var r=inicioDados;r<linhas.length;r++){
+      var l=linhas[r]; if(!l||!l.length||l.every(function(c){return !c;}))continue;
+      var item=(l[idx.item]||'').trim(); if(!item)continue;
+      var qtd=idx.qtd>=0?(parseInt(l[idx.qtd])||1):1;
+      for(var q=1;q<=qtd;q++){
+        m.itens.push({
+          id:proximoIdItem++,
+          colocado:false, x:null, y:null,
+          item:(qtd>1?(item+' ('+q+')'):item),
+          area:idx.area>=0?(l[idx.area]||'').trim():'',
+          setor:idx.setor>=0?(l[idx.setor]||'').trim():'',
+          status:idx.status>=0?(l[idx.status]||'PLANEJADO').trim():'PLANEJADO',
+          material:idx.material>=0?(l[idx.material]||'').trim():'',
+          largura:idx.largura>=0?num(l[idx.largura]):null,
+          altura:idx.altura>=0?num(l[idx.altura]):null,
+          arquivo:idx.arquivo>=0?(l[idx.arquivo]||'').trim():'',
+          obs:idx.obs>=0?(l[idx.obs]||'').trim():'',
+          fotos:[]
+        });
+        cont++;
+      }
+    }
+    salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
+    mostrarAba('itens');
+    alert('Importados '+cont+' itens. Use Mover em cada cartão ou balão para posicionar no mapa.');
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(texto,delim){
+  delim=delim||',';
+  var linhas=[],linha=[],campo='',emAspas=false;
+  for(var i=0;i<texto.length;i++){ var c=texto[i];
+    if(emAspas){ if(c==='"'){ if(texto[i+1]==='"'){campo+='"';i++;} else emAspas=false; } else campo+=c; }
+    else { if(c==='"') emAspas=true; else if(c===delim){ linha.push(campo); campo=''; } else if(c==='\n'){ linha.push(campo); linhas.push(linha); linha=[]; campo=''; } else if(c==='\r'){} else campo+=c; }
+  }
+  if(campo||linha.length){ linha.push(campo); linhas.push(linha); }
+  return linhas.filter(function(l){return l.some(function(c){return c.trim()!=='';});});
+}
+
+// ===== JSON BACKUP =====
+function exportar(){
+  var dados={projetos:projetos,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,corPor:corPor};
+  var blob=new Blob([JSON.stringify(dados,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sistema-mapas-backup.json'; a.click();
+}
+function importar(file){
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(!d.projetos)throw new Error('formato');
+      projetos=d.projetos; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1;
+      projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null;
+      corPor=d.corPor||'area';
+      salvar(); renderizarTudo(); alert('Restaurado com sucesso!');
+    }catch(e){ alert('Arquivo inválido.'); }
+  };
+  reader.readAsText(file);
+}
+
+// ===== EVENTOS =====
+$('tabMapa').onclick=function(){ mostrarAba('mapa'); };
+$('tabItens').onclick=function(){ mostrarAba('itens'); };
+$('fabAdd').onclick=function(){ if(modoArrastar)toggleArrastar(); editandoItem={_novo:true,colocado:false,fotos:[]}; abrirModal(); };
+$('selProjeto').addEventListener('change',function(e){ projetoAtual=Number(e.target.value); mapaAtual=getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null; salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); });
+$('selMapa').addEventListener('change',function(e){ mapaAtual=Number(e.target.value); salvar(); renderizarMapa(); renderizarItens(); });
+$('btnNovoProjeto').onclick=function(){ var n=prompt('Nome do projeto:'); if(n){ criarProjeto(n); salvar(); renderizarTudo(); } };
+$('btnRenomearProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; var n=prompt('Novo nome:',p.nome); if(n){ p.nome=n; salvar(); renderizarProjetos(); } };
+$('btnExcluirProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; if(confirm('Excluir projeto "'+p.nome+'"?')){ excluirProjeto(p.id); salvar(); renderizarTudo(); } };
+$('btnNovoMapa').onclick=function(){ var n=prompt('Nome do mapa (ex: Planta Geral):'); if(n){ criarMapa(projetoAtual,n); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
+$('btnRenomearMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; var n=prompt('Novo nome:',m.nome); if(n){ m.nome=n; salvar(); renderizarMapas(); } };
+$('btnExcluirMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; if(confirm('Excluir mapa "'+m.nome+'"?')){ excluirMapa(projetoAtual,m.id); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
+
+$('planta').addEventListener('change',function(e){
+  var m=getMapaAtual(); if(!m)return;
+  var file=e.target.files[0]; if(!file)return;
+  var isPDF=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+  if(isPDF){
+    var r=new FileReader(); r.onload=function(ev){ carregarPDF(ev.target.result); }; r.readAsArrayBuffer(file);
+  } else {
+    var r2=new FileReader();
+    r2.onload=function(ev){
+      var dataUrl=ev.target.result;
+      var img=new Image();
+      img.onload=function(){ m.imagem=dataUrl; m.larg=img.width; m.alt=img.height; salvar(); renderizarMapa(); };
+      img.src=dataUrl;
+    };
+    r2.readAsDataURL(file);
+  }
+  this.value='';
+});
+
+$('btnAplicarPDF').onclick=aplicarPDF;
+$('btnArrastar').onclick=toggleArrastar;
+$('selCorPor').addEventListener('change',function(e){ corPor=e.target.value; salvar(); renderizarMapa(); renderizarItens(); });
+$('btnExportar').onclick=exportar;
+$('btnImportar').onclick=function(){ if($('importFile'))$('importFile').click(); };
+$('importFile').addEventListener('change',function(e){ if(e.target.files[0])importar(e.target.files[0]); this.value=''; });
+$('btnExportarCSV').onclick=exportarCSV;
+$('btnImportarCSV').onclick=function(){ if($('importCSV'))$('importCSV').click(); };
+$('importCSV').addEventListener('change',function(e){ if(e.target.files[0])importarCSV(e.target.files[0]); this.value=''; });
+$('filtroArea').addEventListener('change',renderizarItens);
+$('filtroSetor').addEventListener('change',renderizarItens);
+$('filtroStatus').addEventListener('change',renderizarItens);
+$('selGrupo').addEventListener('change',renderizarItens);
+$('btnSalvar').onclick=salvarItem;
+$('btnCancelar').onclick=fecharModal;
+
+$('fFotosInput').addEventListener('change',function(e){
+  var files=e.target.files; if(!files||!files.length)return;
+  for(var i=0;i<files.length;i++){
+    (function(file){
+      var r=new FileReader();
+      r.onload=function(ev){ fotosNovas.push(ev.target.result); renderFotosPrev(); };
+      r.readAsDataURL(file);
+    })(files[i]);
+  }
+  this.value='';
+});
+
+carregar();
+renderizarTudo();
+</script>
+</body>
+</html>
