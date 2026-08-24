@@ -13,7 +13,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  /* ===== FONTES HELVETICA NEUE ===== */
   @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueThin.otf') format('opentype'); font-weight:100; }
   @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueLight.otf') format('opentype'); font-weight:300; }
   @font-face { font-family:'Helvetica Neue'; src:url('fonts/HelveticaNeueRoman.otf') format('opentype'); font-weight:400; }
@@ -103,7 +102,6 @@
   .pdf-opcoes { display:none; margin-top:6px; padding:8px; background:#2c3036; border-radius:6px; }
   .pdf-opcoes.visivel { display:block; }
   .pdf-opcoes label { font-size:12px; color:#999; display:block; margin-top:4px; }
-  .link-arquivo { font-size:12px; color:#4498DC; text-decoration:underline; cursor:pointer; font-weight:500; }
   .medida { font-weight:700; color:#6cb8ec; }
   .fotos-mini { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
   .foto-mini { width:44px; height:44px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #3a3f46; }
@@ -126,7 +124,6 @@
   .leaflet-popup-content button svg { width:13px; height:13px; }
   svg { width:14px; height:14px; flex-shrink:0; }
 
-  /* ===== RESPONSIVO — CELULAR ===== */
   @media (max-width: 900px){
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); }
     #sidebar:not(.recolhida){ transform:translateX(0); }
@@ -165,7 +162,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v31 — PWA + Celular</div>
+  <div id="banner">Versão v31 — PWA + Celular + Backup corrigido</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -291,7 +288,6 @@
 </div>
 
 <script>
-// ===== ÍCONES SVG =====
 var ICONES = {
   mapa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
   lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
@@ -314,7 +310,6 @@ var ICONES = {
 };
 function ic(nome){ return ICONES[nome]||''; }
 
-// ===== CARREGA PDF.js DE FORMA OPCIONAL =====
 (function(){
   try {
     var s=document.createElement('script');
@@ -324,7 +319,6 @@ function ic(nome){ return ICONES[nome]||''; }
   } catch(e){}
 })();
 
-// ===== MAPA =====
 var map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 6, zoomControl:false });
 L.control.zoom({ position:'topright' }).addTo(map);
 map.fitBounds([[0,0],[1000,1000]]);
@@ -361,7 +355,6 @@ function corItem(item){
 }
 function $(id){ return document.getElementById(id); }
 
-// ===== APLICA ÍCONES NOS BOTÕES ESTÁTICOS =====
 $('icoTabMapa').innerHTML=ic('mapa');
 $('icoTabItens').innerHTML=ic('lista');
 $('icoNovo').innerHTML=ic('mais');
@@ -378,22 +371,15 @@ $('icoCsvUp').innerHTML=ic('restaurar');
 $('icoFabAdd').innerHTML=ic('mais');
 $('toggleBtn').innerHTML=ic('setaEsq');
 
-// ===== SIDEBAR RETRÁTIL (desktop: margem | celular: gaveta) =====
 function toggleSidebar(){
   var sb=$('sidebar'), btn=$('toggleBtn');
-  var recolhida;
-  if(window.innerWidth<=900){
-    recolhida = sb.classList.toggle('recolhida');
-  } else {
-    recolhida = sb.classList.toggle('recolhida');
-  }
+  var recolhida = sb.classList.toggle('recolhida');
   btn.classList.toggle('recolhida', recolhida);
   btn.innerHTML = recolhida ? ic('setaDir') : ic('setaEsq');
   setTimeout(function(){ map.invalidateSize(); }, 350);
 }
 $('toggleBtn').onclick = toggleSidebar;
 
-// ===== TABS =====
 function mostrarAba(aba){
   var mapa = aba==='mapa';
   $('painelMapa').classList.toggle('visivel', mapa);
@@ -405,7 +391,6 @@ function mostrarAba(aba){
   if(!mapa) renderizarItens();
 }
 
-// ===== CLIQUE NO MAPA: só posiciona quando movendoId ativo =====
 map.on('click', function(e){ if(movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
 
 function colocarItemNoMapa(latlng){
@@ -419,8 +404,17 @@ function colocarItemNoMapa(latlng){
 function cancelarMovimento(){ movendoId=null; $('moveHint').classList.remove('visivel'); map.getContainer().style.cursor=''; }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && movendoId!=null) cancelarMovimento(); });
 
-// ===== PERSISTÊNCIA =====
-function salvar(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify({projetos:projetos,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,projetoAtual:projetoAtual,mapaAtual:mapaAtual,corPor:corPor})); }catch(e){} }
+function limparParaJSON(key, value){
+  if(key==='_marker'||key==='_map') return undefined;
+  return value;
+}
+
+function salvar(){
+  try{
+    var limpo = JSON.parse(JSON.stringify(projetos, limparParaJSON));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({projetos:limpo,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,projetoAtual:projetoAtual,mapaAtual:mapaAtual,corPor:corPor}));
+  }catch(e){}
+}
 function carregar(){
   try{ var d=JSON.parse(localStorage.getItem(STORAGE_KEY)); if(d){ projetos=d.projetos||[]; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1; projetoAtual=d.projetoAtual||null; mapaAtual=d.mapaAtual||null; corPor=d.corPor||'area'; } }catch(e){ projetos=[]; }
   if(!projetos.length) criarProjeto('Projeto 1');
@@ -434,7 +428,6 @@ function excluirProjeto(id){ projetos=projetos.filter(function(p){return p.id!==
 function criarMapa(pid,nome){ var p=getProjeto(pid); if(!p)return; var m={id:proximoIdMapa++,nome:nome,imagem:null,larg:null,alt:null,itens:[]}; p.mapas.push(m); mapaAtual=m.id; return m; }
 function excluirMapa(pid,mid){ var p=getProjeto(pid); if(!p)return; p.mapas=p.mapas.filter(function(m){return m.id!==mid;}); if(mapaAtual===mid) mapaAtual=p.mapas.length?p.mapas[0].id:null; }
 
-// ===== RENDERIZAÇÃO =====
 function renderizarTudo(){ renderizarProjetos(); renderizarMapas(); renderizarFiltros(); renderizarMapa(); renderizarItens(); atualizarBotaoArrastar(); if($('selCorPor'))$('selCorPor').value=corPor; }
 function renderizarProjetos(){ var sel=$('selProjeto'); if(!sel)return; sel.innerHTML=''; projetos.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.nome; if(p.id===projetoAtual)o.selected=true; sel.appendChild(o); }); }
 function renderizarMapas(){ var sel=$('selMapa'); if(!sel)return; sel.innerHTML=''; var p=getProjetoAtual(); if(p)p.mapas.forEach(function(m){ var o=document.createElement('option'); o.value=m.id; o.textContent=m.nome; if(m.id===mapaAtual)o.selected=true; sel.appendChild(o); }); }
@@ -499,7 +492,6 @@ function toggleArrastar(){
   if(m)m.itens.forEach(function(i){ if(i._marker){ i._marker.options.draggable=modoArrastar; try{ if(i._marker.dragging) i._marker.dragging[modoArrastar?'enable':'disable'](); }catch(e){} } });
 }
 
-// ===== INVENTÁRIO =====
 function renderizarItens(){
   var box=$('itens'); if(!box)return; box.innerHTML='';
   var m=getMapaAtual();
@@ -615,7 +607,6 @@ window.iniciarMovimento = iniciarMovimento;
 function destacaLista(id){ var el=document.querySelector('.item[data-id="'+id+'"]'); if(el){ el.style.outline='2px solid #4498DC'; setTimeout(function(){el.style.outline='';},1500); } }
 function excluirItem(id){ var m=getMapaAtual(); if(!m)return; m.itens=m.itens.filter(function(i){return i.id!==id;}); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros(); }
 
-// ===== FOTOS =====
 function abrirFoto(id, idx){
   var m=getMapaAtual(); if(!m)return;
   var item=m.itens.find(function(i){return i.id===id;}); if(!item||!item.fotos||!item.fotos.length)return;
@@ -637,7 +628,6 @@ function renderFotosPrev(){
 }
 function abrirFotoTemp(i){ $('previewConteudo').innerHTML='<img src="'+fotosNovas[i]+'" style="max-width:90vw;max-height:80vh">'; $('previewModal').classList.add('aberto'); }
 
-// ===== PRÉ-VISUALIZAÇÃO =====
 function extrairDriveId(url){ var m = String(url).match(/[-\w]{25,}/); return m ? m[0] : null; }
 function abrirPreview(url){
   if(!url){ alert('Este item não tem link de arquivo.'); return; }
@@ -654,7 +644,6 @@ window.abrirPreview = abrirPreview;
 function fecharPreview(){ $('previewModal').classList.remove('aberto'); $('previewConteudo').innerHTML=''; }
 window.fecharPreview = fecharPreview;
 
-// ===== MODAL =====
 function abrirModal(){
   var m=getMapaAtual(); if(!m){ alert('Crie um mapa primeiro.'); return; }
   var e=editandoItem;
@@ -688,7 +677,6 @@ function salvarItem(){
   mostrarAba('itens');
 }
 
-// ===== PDF =====
 function temPdfJs(){ return typeof window.pdfjsLib!=='undefined'; }
 async function carregarPDF(data){
   if(!temPdfJs()){ alert('PDF.js não carregou (bloqueado por segurança). Use PNG/JPG.'); return; }
@@ -719,7 +707,6 @@ async function aplicarPDF(){
   }catch(err){ alert('Erro ao renderizar o PDF: '+err.message); }
 }
 
-// ===== CSV =====
 function normalizar(s){ return (s||'').trim().toLowerCase().replace(/[áàâãä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòôõö]/g,'o').replace(/[úùûü]/g,'u').replace(/ç/g,'c').replace(/[^a-z0-9]/g,''); }
 function detectarDelim(texto){
   var linhas = texto.split(/\r?\n/).filter(function(l){ return l.trim()!==''; });
@@ -830,11 +817,30 @@ function parseCSV(texto,delim){
   return linhas.filter(function(l){return l.some(function(c){return c.trim()!=='';});});
 }
 
-// ===== JSON BACKUP =====
 function exportar(){
   var dados={projetos:projetos,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,corPor:corPor};
-  var blob=new Blob([JSON.stringify(dados,null,2)],{type:'application/json'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sistema-mapas-backup.json'; a.click();
+  try{
+    var json=JSON.stringify(dados, limparParaJSON, 2);
+    var blob=new Blob([json],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var nome='sistema-mapas-backup.json';
+    var kb=(json.length/1024).toFixed(0);
+    var modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML='<div style="background:#26292e;border:1px solid #3a3f46;padding:22px;border-radius:10px;max-width:420px;text-align:center;color:#e5e5e5;font-family:inherit">'
+      +'<h3 style="margin:0 0 10px;color:#fff">Backup pronto</h3>'
+      +'<p style="font-size:13px;margin:0 0 14px">Tamanho: <b>'+kb+' KB</b><br>Se o download não começou automaticamente, clique no botão:</p>'
+      +'<a href="'+url+'" download="'+nome+'" style="display:inline-block;background:#4498DC;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700">Baixar backup</a>'
+      +'<br><button onclick="this.parentNode.parentNode.remove()" style="margin-top:14px;background:#3a3f46">Fechar</button>'
+      +'</div>';
+    document.body.appendChild(modal);
+    try{
+      var a=document.createElement('a'); a.href=url; a.download=nome;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }catch(e){}
+  }catch(e){
+    alert('Não foi possível gerar o backup: '+e.message);
+  }
 }
 function importar(file){
   var reader=new FileReader();
@@ -851,7 +857,6 @@ function importar(file){
   reader.readAsText(file);
 }
 
-// ===== EVENTOS =====
 $('tabMapa').onclick=function(){ mostrarAba('mapa'); };
 $('tabItens').onclick=function(){ mostrarAba('itens'); };
 $('fabAdd').onclick=function(){ if(modoArrastar)toggleArrastar(); editandoItem={_novo:true,colocado:false,fotos:[]}; abrirModal(); };
@@ -914,7 +919,6 @@ $('fFotosInput').addEventListener('change',function(e){
 carregar();
 renderizarTudo();
 
-// ===== PWA: inicia com a gaveta fechada no celular =====
 if(window.innerWidth<=900){
   $('sidebar').classList.add('recolhida');
   $('toggleBtn').classList.add('recolhida');
@@ -922,7 +926,6 @@ if(window.innerWidth<=900){
   setTimeout(function(){ map.invalidateSize(); }, 100);
 }
 
-// ===== PWA: registra o service worker =====
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('./sw.js').catch(function(){});
