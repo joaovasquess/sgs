@@ -113,8 +113,8 @@
   .leaflet-bar a { background:#2c3036; color:#e5e5e5; border-bottom:1px solid #3a3f46; }
   .leaflet-bar a:hover { background:#33383f; }
   .leaflet-control-attribution { background:rgba(20,22,26,.8); color:#8a8a8a; }
-  #moveHint { position:fixed; top:60px; left:50%; transform:translateX(-50%); z-index:1500; background:#743FD7; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); font-weight:500; text-align:center; }
-  #moveHint.visivel { display:block; }
+  #moveHint { position:fixed; top:60px; left:50%; transform:translateX(-50%); z-index:1500; background:#743FD7; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); font-weight:500; text-align:center; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
+  #moveHint.visivel { display:flex; }
   .balao-botoes { display:flex; gap:6px; margin-top:8px; }
   .balao-botoes button { flex:1; font-size:12px; padding:5px 8px; justify-content:center; }
   .balao-botoes button svg { width:13px; height:13px; }
@@ -154,7 +154,7 @@
     #sidebar header .logo-top { max-height:34px; }
     .filtros select { min-width:100px; }
     .balao-botoes { flex-wrap:wrap; }
-    #moveHint { top:50px; width:90%; left:50%; transform:translateX(-50%); }
+    #moveHint { top:50px; width:90%; left:50%; transform:translateX(-50%); flex-wrap:wrap; }
   }
   @media (max-width: 480px){
     #modal .card { width:96vw; }
@@ -174,7 +174,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v35 — CSV: Substituir ou Corresponder</div>
+  <div id="banner">Versão v36 — Destaques + Cancelar no celular</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -272,7 +272,7 @@
 </div>
 
 <div id="map"></div>
-<div id="moveHint">Clique no mapa para posicionar o item — ESC cancela</div>
+<div id="moveHint">Clique no mapa para posicionar o item <button id="btnCancelarMov" onclick="cancelarMovimento()" style="background:#F51E16;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;font-family:inherit">Cancelar</button></div>
 
 <div id="modal">
   <div class="card">
@@ -352,6 +352,8 @@ var fotosNovas=[];
 var corPor='area';
 var movendoId=null;
 var mapaEscuro=false;
+var pinsDourados=[];
+var HINT_CANCEL=' <button id="btnCancelarMov" onclick="cancelarMovimento()" style="background:#F51E16;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;font-family:inherit">Cancelar</button>';
 
 var CORES_AREA={'ÁREA EXTERNA':'#4498DC','ÁREA COMUM':'#61D835','ESPAÇO DE SHOW':'#743FD7','CAMAROTE':'#F99FAA','ESTACIONAMENTO':'#F51E16','PLACAS JURÍDICAS':'#D5D112','GERAIS':'#8a8a8a','A&B':'#F99FAA'};
 
@@ -424,15 +426,15 @@ function atualizarHint(){
     if(item){
       var pend=m.itens.filter(function(i){ return baseNome(i)===baseNome(item) && !i.colocado; });
       if(pend.length>1){
-        $('moveHint').innerHTML='Colocando "'+baseNome(item)+'" — restam '+pend.length+' para posicionar. ESC encerra';
+        $('moveHint').innerHTML='Colocando "'+baseNome(item)+'" — restam '+pend.length+' para posicionar'+HINT_CANCEL;
       } else {
-        $('moveHint').innerHTML='Clique no mapa para posicionar o item — ESC cancela';
+        $('moveHint').innerHTML='Clique no mapa para posicionar o item'+HINT_CANCEL;
       }
     }
   }
 }
 
-map.on('click', function(e){ if(movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
+map.on('click', function(e){ limparPinsDourados(); if(movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
 
 function colocarItemNoMapa(latlng){
   var m=getMapaAtual(); if(!m) return;
@@ -447,10 +449,10 @@ function colocarItemNoMapa(latlng){
     renderizarMapa(); renderizarItens();
     return;
   }
-  movendoId=null; $('moveHint').classList.remove('visivel'); $('moveHint').innerHTML='Clique no mapa para posicionar o item — ESC cancela'; map.getContainer().style.cursor='';
+  movendoId=null; $('moveHint').classList.remove('visivel'); $('moveHint').innerHTML='Clique no mapa para posicionar o item'+HINT_CANCEL; map.getContainer().style.cursor='';
   renderizarMapa(); renderizarItens();
 }
-function cancelarMovimento(){ movendoId=null; $('moveHint').classList.remove('visivel'); $('moveHint').innerHTML='Clique no mapa para posicionar o item — ESC cancela'; map.getContainer().style.cursor=''; }
+function cancelarMovimento(){ movendoId=null; $('moveHint').classList.remove('visivel'); $('moveHint').innerHTML='Clique no mapa para posicionar o item'+HINT_CANCEL; map.getContainer().style.cursor=''; }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && movendoId!=null) cancelarMovimento(); });
 
 function limparParaJSON(key, value){
@@ -648,7 +650,7 @@ function criarCardItem(item){
     +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+'</button>':'')
     +'<button data-acao="fotos" class="secondary">'+ic('foto')+'</button>'
     +'</div>';
-  div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
+  div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); destacarPinsGrupo(item); if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
   var bm=div.querySelector('[data-acao="mover"]'); if(bm)bm.onclick=function(e){ e.stopPropagation(); iniciarMovimento(item.id); };
   var be=div.querySelector('[data-acao="editar"]'); if(be)be.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
   var bx=div.querySelector('[data-acao="excluir"]'); if(bx)bx.onclick=function(e){ e.stopPropagation(); excluirItem(item.id); };
@@ -665,18 +667,33 @@ function iniciarMovimento(id){
 }
 window.iniciarMovimento = iniciarMovimento;
 
+function abrirGruposDoItem(el){
+  var gq=el.closest('.grupo-qtd');
+  if(gq && !gq.classList.contains('aberto')) gq.classList.add('aberto');
+  var gs=el.closest('.grupo-status');
+  if(gs && !gs.classList.contains('aberto')) gs.classList.add('aberto');
+}
+
 function destacarGrupo(item){
   var m=getMapaAtual(); if(!m||!item) return;
   var base=baseNome(item);
   var iguais=m.itens.filter(function(i){ return baseNome(i)===base; });
   if(iguais.length<=1) return;
-  var els=[];
+  var els=[], cabs=[];
   iguais.forEach(function(i){
     var el=document.querySelector('.item[data-id="'+i.id+'"]');
-    if(el){ el.classList.add('destaque-suave'); els.push(el); }
+    if(el){
+      abrirGruposDoItem(el);
+      el.classList.add('destaque-suave'); els.push(el);
+      var gq=el.closest('.grupo-qtd');
+      if(gq && gq.children[0] && gq.children[0].classList.contains('cab')){
+        gq.children[0].classList.add('destaque-suave'); cabs.push(gq.children[0]);
+      }
+    }
   });
   setTimeout(function(){
     els.forEach(function(el){ el.classList.remove('destaque-suave'); });
+    cabs.forEach(function(c){ c.classList.remove('destaque-suave'); });
   }, 2200);
 }
 
@@ -685,16 +702,17 @@ function destacarPinsGrupo(item){
   var base=baseNome(item);
   var iguais=m.itens.filter(function(i){ return baseNome(i)===base; });
   if(iguais.length<=1) return;
-  var marcados=[];
+  limparPinsDourados();
   iguais.forEach(function(i){
     if(i._marker && i._marker._icon){
       var inner=i._marker._icon.querySelector('div');
-      if(inner){ inner.style.borderColor='#FFD700'; marcados.push(inner); }
+      if(inner){ inner.style.borderColor='#FFD700'; pinsDourados.push(inner); }
     }
   });
-  setTimeout(function(){
-    marcados.forEach(function(el){ el.style.borderColor='#fff'; });
-  }, 2200);
+}
+function limparPinsDourados(){
+  pinsDourados.forEach(function(el){ try{ if(el) el.style.borderColor='#fff'; }catch(e){} });
+  pinsDourados=[];
 }
 
 function destacaLista(id){
@@ -702,6 +720,7 @@ function destacaLista(id){
   var item=m?m.itens.find(function(i){return i.id===id;}):null;
   var el=document.querySelector('.item[data-id="'+id+'"]');
   if(el){
+    abrirGruposDoItem(el);
     el.scrollIntoView({behavior:'smooth', block:'center'});
     el.classList.add('destaque-claro');
     setTimeout(function(){ el.classList.remove('destaque-claro'); },2200);
