@@ -134,8 +134,9 @@
   /* ===== ESCURECER MAPA ===== */
   #map.escuro .leaflet-overlay-pane { filter:brightness(0.45) contrast(1.1); transition:filter .2s; }
 
-  /* ===== DESTAQUE SUAVE DE ITENS EM QUANTIDADE ===== */
+  /* ===== DESTAQUES ===== */
   .item.destaque-suave { background:#3b4a5c !important; box-shadow:inset 0 0 0 1px rgba(68,152,220,.55); }
+  .item.destaque-claro { background:#3d4a5e !important; }
 
   @media (max-width: 900px){
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
@@ -173,7 +174,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v33 — Backup por projeto + Usabilidade</div>
+  <div id="banner">Versão v35 — CSV: Substituir ou Corresponder</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -519,7 +520,7 @@ function adicionarPin(item){
     +'<button onclick="removerDoMapa('+item.id+')" class="danger">'+ic('removerMapa')+'</button>'
     +'</div>';
   marker.bindPopup('<b>'+item.item+'</b><br><span style="color:'+cor+'">●</span> '+rotuloCor+'<br>Status: '+(item.status||'-')+'<br>Medidas: '+(med||'-')+(item.obs?'<br>Obs: '+item.obs:'')+caixaAnexos+botoesBalao);
-  marker.on('click',function(){ destacaLista(item.id); });
+  marker.on('click',function(){ destacaLista(item.id); destacarPinsGrupo(item); });
   marker.on('dragend',function(e){ var pos=e.target.getLatLng(); item.x=pos.lng; item.y=pos.lat; salvar(); e.target.closePopup(); e.target.openPopup(); });
   item._marker=marker;
 }
@@ -647,7 +648,7 @@ function criarCardItem(item){
     +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+'</button>':'')
     +'<button data-acao="fotos" class="secondary">'+ic('foto')+'</button>'
     +'</div>';
-  div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); if(item.colocado){ mostrarAba('mapa'); map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
+  div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
   var bm=div.querySelector('[data-acao="mover"]'); if(bm)bm.onclick=function(e){ e.stopPropagation(); iniciarMovimento(item.id); };
   var be=div.querySelector('[data-acao="editar"]'); if(be)be.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
   var bx=div.querySelector('[data-acao="excluir"]'); if(bx)bx.onclick=function(e){ e.stopPropagation(); excluirItem(item.id); };
@@ -679,15 +680,31 @@ function destacarGrupo(item){
   }, 2200);
 }
 
+function destacarPinsGrupo(item){
+  var m=getMapaAtual(); if(!m||!item) return;
+  var base=baseNome(item);
+  var iguais=m.itens.filter(function(i){ return baseNome(i)===base; });
+  if(iguais.length<=1) return;
+  var marcados=[];
+  iguais.forEach(function(i){
+    if(i._marker && i._marker._icon){
+      var inner=i._marker._icon.querySelector('div');
+      if(inner){ inner.style.borderColor='#FFD700'; marcados.push(inner); }
+    }
+  });
+  setTimeout(function(){
+    marcados.forEach(function(el){ el.style.borderColor='#fff'; });
+  }, 2200);
+}
+
 function destacaLista(id){
   var m=getMapaAtual();
   var item=m?m.itens.find(function(i){return i.id===id;}):null;
   var el=document.querySelector('.item[data-id="'+id+'"]');
   if(el){
     el.scrollIntoView({behavior:'smooth', block:'center'});
-    el.style.outline='2px solid #4498DC';
-    el.style.background='#3a4a5a';
-    setTimeout(function(){ el.style.outline=''; el.style.background=''; },2200);
+    el.classList.add('destaque-claro');
+    setTimeout(function(){ el.classList.remove('destaque-claro'); },2200);
   }
   if(item) destacarGrupo(item);
 }
@@ -862,32 +879,105 @@ function importarCSV(file){
       y: acharColuna(['y'])
     };
     var inicioDados = temSubCab ? linhaSub + 1 : linhaCab + 1;
-    var cont=0;
+
+    // Escolha do modo de importação
+    var substituir = confirm('Como deseja importar o CSV?\n\nOK = Substituir tudo (apaga os itens atuais do mapa e importa do zero)\nCancelar = Corresponder (atualiza os existentes mantendo a posição no mapa e cria só o que falta)');
+
+    // Agrupa as linhas do CSV por nome base
+    var gruposCSV={};
     for(var r=inicioDados;r<linhas.length;r++){
       var l=linhas[r]; if(!l||!l.length||l.every(function(c){return !c;}))continue;
       var item=(l[idx.item]||'').trim(); if(!item)continue;
-      var qtd=idx.qtd>=0?(parseInt(l[idx.qtd])||1):1;
-      for(var q=1;q<=qtd;q++){
-        m.itens.push({
-          id:proximoIdItem++,
-          colocado:false, x:null, y:null,
-          item:(qtd>1?(item+' ('+q+')'):item),
-          area:idx.area>=0?(l[idx.area]||'').trim():'',
-          setor:idx.setor>=0?(l[idx.setor]||'').trim():'',
-          status:idx.status>=0?(l[idx.status]||'Criação').trim():'Criação',
-          material:idx.material>=0?(l[idx.material]||'').trim():'',
-          largura:idx.largura>=0?num(l[idx.largura]):null,
-          altura:idx.altura>=0?num(l[idx.altura]):null,
-          arquivo:idx.arquivo>=0?(l[idx.arquivo]||'').trim():'',
-          obs:idx.obs>=0?(l[idx.obs]||'').trim():'',
-          fotos:[]
-        });
-        cont++;
-      }
+      var base=item.replace(/\s\(\d+\)$/,'');
+      if(!gruposCSV[base]) gruposCSV[base]=[];
+      gruposCSV[base].push(l);
     }
+
+    // Monta as unidades de cada grupo (expandindo a quantidade)
+    var unidadesCSV={};
+    Object.keys(gruposCSV).forEach(function(base){
+      var lista=[];
+      gruposCSV[base].forEach(function(l){
+        var n=(idx.qtd>=0?(parseInt(l[idx.qtd])||1):1);
+        for(var q=1;q<=n;q++){
+          lista.push({
+            area:idx.area>=0?(l[idx.area]||'').trim():'',
+            setor:idx.setor>=0?(l[idx.setor]||'').trim():'',
+            status:idx.status>=0?(l[idx.status]||'Criação').trim():'Criação',
+            material:idx.material>=0?(l[idx.material]||'').trim():'',
+            largura:idx.largura>=0?num(l[idx.largura]):null,
+            altura:idx.altura>=0?num(l[idx.altura]):null,
+            arquivo:idx.arquivo>=0?(l[idx.arquivo]||'').trim():'',
+            obs:idx.obs>=0?(l[idx.obs]||'').trim():''
+          });
+        }
+      });
+      unidadesCSV[base]=lista;
+    });
+
+    var cont=0;
+    if(substituir){
+      // Remove todos os itens atuais do mapa e importa do zero
+      m.itens=[];
+      Object.keys(unidadesCSV).forEach(function(base){
+        var lista=unidadesCSV[base];
+        lista.forEach(function(d,u){
+          m.itens.push({
+            id:proximoIdItem++,
+            colocado:false, x:null, y:null,
+            item:(lista.length>1?(base+' ('+(u+1)+')'):base),
+            area:d.area, setor:d.setor, status:d.status, material:d.material,
+            largura:d.largura, altura:d.altura, arquivo:d.arquivo, obs:d.obs, fotos:[]
+          });
+          cont++;
+        });
+      });
+      salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
+      mostrarAba('itens');
+      alert('Substituído: '+cont+' itens importados (os antigos foram removidos). Posicione os itens com Mover.');
+      return;
+    }
+
+    // Modo corresponder: agrupa existentes por nome base
+    var existentes={};
+    m.itens.forEach(function(it){
+      var b=baseNome(it);
+      if(!existentes[b]) existentes[b]=[];
+      existentes[b].push(it);
+    });
+
+    var contNovos=0, contAtualizados=0;
+    Object.keys(unidadesCSV).forEach(function(base){
+      var lista=unidadesCSV[base];
+      var listaExistente=existentes[base]||[];
+      for(var u=0; u<lista.length; u++){
+        if(u < listaExistente.length){
+          var ex=listaExistente[u];
+          ex.area=lista[u].area;
+          ex.setor=lista[u].setor;
+          ex.status=lista[u].status;
+          ex.material=lista[u].material;
+          ex.largura=lista[u].largura;
+          ex.altura=lista[u].altura;
+          ex.arquivo=lista[u].arquivo;
+          ex.obs=lista[u].obs;
+          contAtualizados++;
+        } else {
+          m.itens.push({
+            id:proximoIdItem++,
+            colocado:false, x:null, y:null,
+            item:(lista.length>1?(base+' ('+(u+1)+')'):base),
+            area:lista[u].area, setor:lista[u].setor, status:lista[u].status, material:lista[u].material,
+            largura:lista[u].largura, altura:lista[u].altura, arquivo:lista[u].arquivo, obs:lista[u].obs, fotos:[]
+          });
+          contNovos++;
+        }
+      }
+    });
+
     salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
     mostrarAba('itens');
-    alert('Importados '+cont+' itens. Use Mover em cada cartão ou balão para posicionar no mapa.');
+    alert('Importação concluída: '+contAtualizados+' atualizados, '+contNovos+' novos. Itens já posicionados mantêm sua posição no mapa.');
   };
   reader.readAsText(file);
 }
