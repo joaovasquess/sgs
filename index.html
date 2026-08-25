@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SGS">
-<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -26,10 +26,10 @@
   body { font-family:'Helvetica Neue',Arial,sans-serif; font-weight:400; display:flex; height:100vh; height:100dvh; color:#e5e5e5; overflow:hidden; background:#1b1e23; }
   #sidebar { width:400px; min-width:320px; background:#23262b; display:flex; flex-direction:column; border-right:1px solid #333; transition:margin-left .3s ease; }
   #sidebar.recolhida { margin-left:-400px; }
-  #toggleBtn { position:fixed; top:10px; left:410px; z-index:1500; background:#4498DC; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); transition:left .3s ease; line-height:0; display:flex; align-items:center; justify-content:center; }
+  #toggleBtn { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:410px; z-index:1500; background:#4498DC; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); transition:left .3s ease; line-height:0; display:flex; align-items:center; justify-content:center; }
   #toggleBtn.recolhida { left:10px; }
   #toggleBtn svg { width:15px; height:15px; }
-  #sidebar header { padding:14px; background:#F51E16; color:#fff; text-align:center; }
+  #sidebar header { padding:calc(14px + env(safe-area-inset-top)) 14px 14px; background:#F51E16; color:#fff; text-align:center; }
   #sidebar header .logo-top { max-height:42px; margin-bottom:8px; background:transparent; border:none; border-radius:0; padding:0; filter:brightness(0) invert(1); }
   #sidebar header h1 { margin:0; font-size:26px; letter-spacing:4px; font-weight:900; }
   #sidebar header .sub { font-size:11px; color:#ffd9d6; margin-top:2px; letter-spacing:1px; font-weight:300; }
@@ -52,6 +52,7 @@
   .row { display:flex; gap:6px; align-items:center; }
   .row > * { flex:1; }
   #map { flex:1; background:#3a3f46; position:relative; }
+  #map .leaflet-top { top:calc(10px + env(safe-area-inset-top)); }
   #itens { flex:1; overflow-y:auto; padding:10px; }
   .item { padding:8px; background:#2c3036; border:1px solid #3a3f46; border-radius:6px; margin-bottom:6px; }
   .item:hover { background:#33383f; }
@@ -113,7 +114,7 @@
   .leaflet-bar a { background:#2c3036; color:#e5e5e5; border-bottom:1px solid #3a3f46; }
   .leaflet-bar a:hover { background:#33383f; }
   .leaflet-control-attribution { background:rgba(20,22,26,.8); color:#8a8a8a; }
-  #moveHint { position:fixed; top:60px; left:50%; transform:translateX(-50%); z-index:1500; background:#743FD7; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); font-weight:500; text-align:center; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
+  #moveHint { position:fixed; top:calc(60px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:1500; background:#743FD7; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); font-weight:500; text-align:center; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
   #moveHint.visivel { display:flex; }
   .balao-botoes { display:flex; gap:6px; margin-top:8px; }
   .balao-botoes button { flex:1; font-size:12px; padding:5px 8px; justify-content:center; }
@@ -131,6 +132,13 @@
   #painelItens #itens::-webkit-scrollbar { width:4px; }
   #painelItens #itens::-webkit-scrollbar-thumb { background:#555; border-radius:4px; }
 
+  /* ===== CORREÇÃO HORIZONTAL (landscape) ===== */
+  @media (orientation: landscape) and (max-width: 900px){
+    #sidebar { overflow:hidden !important; }
+    #painelItens { height:100% !important; min-height:0 !important; }
+    #painelItens #itens { height:100% !important; min-height:0 !important; overflow-y:auto !important; }
+  }
+
   /* ===== ESCURECER MAPA ===== */
   #map.escuro .leaflet-overlay-pane { filter:brightness(0.45) contrast(1.1); transition:filter .2s; }
 
@@ -142,7 +150,7 @@
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
     #sidebar:not(.recolhida){ transform:translateX(0); }
     #sidebar.recolhida { transform:translateX(-100%); }
-    #toggleBtn { left:10px; top:10px; z-index:1700; background:rgba(68,152,220,.92); }
+    #toggleBtn { left:10px; top:calc(10px + env(safe-area-inset-top)); z-index:1700; background:rgba(68,152,220,.92); }
     #toggleBtn.recolhida { left:10px; }
     #map { width:100vw; }
     #modal .card { width:92vw; max-width:380px; padding:16px; }
@@ -154,7 +162,7 @@
     #sidebar header .logo-top { max-height:34px; }
     .filtros select { min-width:100px; }
     .balao-botoes { flex-wrap:wrap; }
-    #moveHint { top:50px; width:90%; left:50%; transform:translateX(-50%); flex-wrap:wrap; }
+    #moveHint { top:calc(50px + env(safe-area-inset-top)); width:90%; left:50%; transform:translateX(-50%); flex-wrap:wrap; }
   }
   @media (max-width: 480px){
     #modal .card { width:96vw; }
@@ -174,7 +182,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v36 — Destaques + Cancelar no celular</div>
+  <div id="banner">Versão v38 — iOS Safe Area + Ícone</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
