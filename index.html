@@ -132,13 +132,6 @@
   #painelItens #itens::-webkit-scrollbar { width:4px; }
   #painelItens #itens::-webkit-scrollbar-thumb { background:#555; border-radius:4px; }
 
-  /* ===== CORREÇÃO HORIZONTAL (landscape) ===== */
-  @media (orientation: landscape) and (max-width: 900px){
-    #sidebar { overflow:hidden !important; }
-    #painelItens { height:100% !important; min-height:0 !important; }
-    #painelItens #itens { height:100% !important; min-height:0 !important; overflow-y:auto !important; }
-  }
-
   /* ===== ESCURECER MAPA ===== */
   #map.escuro .leaflet-overlay-pane { filter:brightness(0.45) contrast(1.1); transition:filter .2s; }
 
@@ -170,6 +163,15 @@
     .item .acoes button { flex:1; justify-content:center; }
     #previewModal .fechar { top:10px; right:16px; }
   }
+
+  /* ===== FIX ROLAGEM LANDSCAPE (no FINAL do CSS para vencer os outros) ===== */
+  @media (orientation: landscape) and (max-width: 900px){
+    #sidebar { overflow:hidden !important; }
+    #painelMapa { overflow-y:auto !important; }
+    #painelItens { display:flex !important; flex-direction:column !important; flex:1 1 auto !important; min-height:0 !important; height:auto !important; overflow:hidden !important; }
+    #painelItens .panel { flex-shrink:0 !important; }
+    #painelItens #itens { flex:1 1 auto !important; min-height:0 !important; height:auto !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  }
 </style>
 </head>
 <body>
@@ -182,7 +184,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v38 — iOS Safe Area + Ícone</div>
+  <div id="banner">Versão v40 — Botões com texto</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -195,8 +197,8 @@
       <div class="row"><select id="selProjeto"></select></div>
       <div class="row">
         <button id="btnNovoProjeto"><span id="icoNovo"></span> Projeto</button>
-        <button id="btnRenomearProjeto" class="secondary"><span id="icoRenomear"></span></button>
-        <button id="btnExcluirProjeto" class="danger"><span id="icoExcluir"></span></button>
+        <button id="btnRenomearProjeto" class="secondary"><span id="icoRenomear"></span> Editar</button>
+        <button id="btnExcluirProjeto" class="danger"><span id="icoExcluir"></span> Excluir</button>
       </div>
     </div>
     <div class="panel">
@@ -204,8 +206,8 @@
       <div class="row"><select id="selMapa"></select></div>
       <div class="row">
         <button id="btnNovoMapa"><span id="icoNovoMapa"></span> Mapa</button>
-        <button id="btnRenomearMapa" class="secondary"><span id="icoRenomearMapa"></span></button>
-        <button id="btnExcluirMapa" class="danger"><span id="icoExcluirMapa"></span></button>
+        <button id="btnRenomearMapa" class="secondary"><span id="icoRenomearMapa"></span> Editar</button>
+        <button id="btnExcluirMapa" class="danger"><span id="icoExcluirMapa"></span> Excluir</button>
       </div>
       <input type="file" id="planta" accept="image/*,.pdf" style="margin-top:6px">
       <p class="dica">Carregue imagem (PNG/JPG) ou PDF — preserva a proporção real</p>
@@ -653,10 +655,10 @@ function criarCardItem(item){
   var nfotos = (item.fotos&&item.fotos.length)?(' • '+item.fotos.length+' foto(s)'):'';
   div.innerHTML='<span class="cor-pin" style="background:'+cor+'"></span><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+' • '+(item.status||'-')+(med?' • '+med:'')+nfotos+'</div><div class="acoes">'
     +'<button data-acao="mover" style="background:#4498DC">'+ic('mover')+' Mover</button>'
-    +'<button data-acao="editar" class="secondary">'+ic('editar')+'</button>'
-    +'<button data-acao="excluir" class="danger">'+ic('excluir')+'</button>'
-    +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+'</button>':'')
-    +'<button data-acao="fotos" class="secondary">'+ic('foto')+'</button>'
+    +'<button data-acao="editar" class="secondary">'+ic('editar')+' Editar</button>'
+    +'<button data-acao="excluir" class="danger">'+ic('excluir')+' Excluir</button>'
+    +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+' Ver</button>':'')
+    +'<button data-acao="fotos" class="secondary">'+ic('foto')+' Fotos</button>'
     +'</div>';
   div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); destacarPinsGrupo(item); if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
   var bm=div.querySelector('[data-acao="mover"]'); if(bm)bm.onclick=function(e){ e.stopPropagation(); iniciarMovimento(item.id); };
