@@ -164,11 +164,22 @@
     #previewModal .fechar { top:10px; right:16px; }
   }
 
-  /* ===== FIX ROLAGEM LANDSCAPE (no FINAL do CSS para vencer os outros) ===== */
+  /* ===== FIX ROLAGEM LANDSCAPE ===== */
   @media (orientation: landscape) and (max-width: 900px){
     #sidebar { overflow:hidden !important; }
     #painelMapa { overflow-y:auto !important; }
     #painelItens { display:flex !important; flex-direction:column !important; flex:1 1 auto !important; min-height:0 !important; height:auto !important; overflow:hidden !important; }
+    #painelItens .panel { flex-shrink:0 !important; }
+    #painelItens #itens { flex:1 1 auto !important; min-height:0 !important; height:auto !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  }
+
+  /* ===== FIX ROLAGEM GERAL MOBILE (retrato + paisagem) — no FINAL para vencer ===== */
+  @media (max-width: 900px){
+    #sidebar { overflow:hidden !important; }
+    #sidebar header, #sidebar #banner, #sidebar #tabs { flex-shrink:0 !important; }
+    #painelMapa { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+    #painelMapa .panel { flex-shrink:0 !important; }
+    #painelItens { flex:1 1 auto !important; min-height:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }
     #painelItens .panel { flex-shrink:0 !important; }
     #painelItens #itens { flex:1 1 auto !important; min-height:0 !important; height:auto !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   }
@@ -184,7 +195,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v40 — Botões com texto</div>
+  <div id="banner">Versão v41 — Scroll Mapa e Itens</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
