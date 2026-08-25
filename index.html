@@ -124,8 +124,20 @@
   .leaflet-popup-content button svg { width:13px; height:13px; }
   svg { width:14px; height:14px; flex-shrink:0; }
 
+  /* ===== CORREÇÃO DE ROLAGEM (celular e desktop) ===== */
+  #painelMapa, #painelItens {
+    overflow-y:auto !important;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  #painelMapa .panel:last-child,
+  #painelItens .panel:last-child { padding-bottom:90px; }
+  #painelMapa::-webkit-scrollbar, #painelItens::-webkit-scrollbar { width:4px; }
+  #painelMapa::-webkit-scrollbar-thumb, #painelItens::-webkit-scrollbar-thumb { background:#555; border-radius:4px; }
+
   @media (max-width: 900px){
-    #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); }
+    #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
     #sidebar:not(.recolhida){ transform:translateX(0); }
     #sidebar.recolhida { transform:translateX(-100%); }
     #toggleBtn { left:10px; top:10px; z-index:1700; background:rgba(68,152,220,.92); }
@@ -267,8 +279,8 @@
     <label>ITEM</label><input id="fItem">
     <label>STATUS</label>
     <select id="fStatus">
-      <option>LEVAR DA GRÁFICA</option><option>JÁ NO LOCAL</option>
-      <option>APENAS BRANCO</option><option>APENAS FRENTE</option><option>PLANEJADO</option>
+      <option>Criação</option><option>Produção</option>
+      <option>No Local</option><option>Instalado</option>
     </select>
     <label>MATERIAL</label><input id="fMaterial" placeholder="Ex: LONA COM ILHOIS">
     <div class="row">
@@ -371,10 +383,10 @@ $('icoExcluirMapa').innerHTML=ic('excluir');
 $('icoArrastar').innerHTML=ic('arrastar');
 $('icoBackup').innerHTML=ic('backup');
 $('icoRestaurar').innerHTML=ic('restaurar');
-$('icoCsvDown').innerHTML=ic('backup');
-$('icoCsvUp').innerHTML=ic('restaurar');
 if($('icoProjDown'))$('icoProjDown').innerHTML=ic('backup');
 if($('icoProjUp'))$('icoProjUp').innerHTML=ic('restaurar');
+$('icoCsvDown').innerHTML=ic('backup');
+$('icoCsvUp').innerHTML=ic('restaurar');
 $('icoFabAdd').innerHTML=ic('mais');
 $('toggleBtn').innerHTML=ic('setaEsq');
 
@@ -659,7 +671,7 @@ function abrirModal(){
   if($('fArea'))$('fArea').value=(e&&!e._novo)?(e.area||''):'';
   if($('fSetor'))$('fSetor').value=(e&&!e._novo)?(e.setor||''):'';
   if($('fItem'))$('fItem').value=(e&&!e._novo)?e.item:'';
-  if($('fStatus'))$('fStatus').value=(e&&!e._novo)?(e.status||'PLANEJADO'):'PLANEJADO';
+  if($('fStatus'))$('fStatus').value=(e&&!e._novo)?(e.status||'Criação'):'Criação';
   if($('fMaterial'))$('fMaterial').value=(e&&!e._novo)?(e.material||''):'';
   if($('fLargura'))$('fLargura').value=(e&&!e._novo)?(e.largura||''):'';
   if($('fAltura'))$('fAltura').value=(e&&!e._novo)?(e.altura||''):'';
@@ -675,7 +687,7 @@ function salvarItem(){
   if(!$('fItem'))return;
   var item=$('fItem').value.trim();
   if(!item){ alert('Informe o ITEM.'); return; }
-  var dados={ area:$('fArea')?$('fArea').value.trim():'', setor:$('fSetor')?$('fSetor').value.trim():'', item:item, status:$('fStatus')?$('fStatus').value:'PLANEJADO', material:$('fMaterial')?$('fMaterial').value.trim():'', largura:$('fLargura')?parseFloat($('fLargura').value)||null:null, altura:$('fAltura')?parseFloat($('fAltura').value)||null:null, arquivo:$('fArquivo')?$('fArquivo').value.trim():'', obs:$('fObs')?$('fObs').value.trim():'', fotos:fotosNovas.slice() };
+  var dados={ area:$('fArea')?$('fArea').value.trim():'', setor:$('fSetor')?$('fSetor').value.trim():'', item:item, status:$('fStatus')?$('fStatus').value:'Criação', material:$('fMaterial')?$('fMaterial').value.trim():'', largura:$('fLargura')?parseFloat($('fLargura').value)||null:null, altura:$('fAltura')?parseFloat($('fAltura').value)||null:null, arquivo:$('fArquivo')?$('fArquivo').value.trim():'', obs:$('fObs')?$('fObs').value.trim():'', fotos:fotosNovas.slice() };
   if(editandoItem&&!editandoItem._novo){ for(var k in dados) editandoItem[k]=dados[k]; }
   else {
     m.itens.push({id:proximoIdItem++,colocado:false,x:null,y:null,area:dados.area,setor:dados.setor,item:dados.item,status:dados.status,material:dados.material,largura:dados.largura,altura:dados.altura,arquivo:dados.arquivo,obs:dados.obs,fotos:dados.fotos});
@@ -795,7 +807,7 @@ function importarCSV(file){
           item:(qtd>1?(item+' ('+q+')'):item),
           area:idx.area>=0?(l[idx.area]||'').trim():'',
           setor:idx.setor>=0?(l[idx.setor]||'').trim():'',
-          status:idx.status>=0?(l[idx.status]||'PLANEJADO').trim():'PLANEJADO',
+          status:idx.status>=0?(l[idx.status]||'Criação').trim():'Criação',
           material:idx.material>=0?(l[idx.material]||'').trim():'',
           largura:idx.largura>=0?num(l[idx.largura]):null,
           altura:idx.altura>=0?num(l[idx.altura]):null,
@@ -906,7 +918,7 @@ function importarProjeto(file){
       proj.mapas.forEach(function(m){
         var novoMapa={id:proximoIdMapa++, nome:m.nome||'Mapa', imagem:m.imagem||null, larg:m.larg||null, alt:m.alt||null, itens:[]};
         (m.itens||[]).forEach(function(i){
-          novoMapa.itens.push({id:proximoIdItem++, colocado:!!i.colocado, x:(i.x!=null?i.x:null), y:(i.y!=null?i.y:null), area:i.area||'', setor:i.setor||'', item:i.item||'', status:i.status||'PLANEJADO', material:i.material||'', largura:i.largura||null, altura:i.altura||null, arquivo:i.arquivo||'', obs:i.obs||'', fotos:Array.isArray(i.fotos)?i.fotos:[]});
+          novoMapa.itens.push({id:proximoIdItem++, colocado:!!i.colocado, x:(i.x!=null?i.x:null), y:(i.y!=null?i.y:null), area:i.area||'', setor:i.setor||'', item:i.item||'', status:i.status||'Criação', material:i.material||'', largura:i.largura||null, altura:i.altura||null, arquivo:i.arquivo||'', obs:i.obs||'', fotos:Array.isArray(i.fotos)?i.fotos:[]});
         });
         novosMapas.push(novoMapa);
       });
