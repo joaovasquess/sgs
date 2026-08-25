@@ -122,6 +122,28 @@
   .leaflet-popup-content button svg { width:13px; height:13px; }
   svg { width:14px; height:14px; flex-shrink:0; }
 
+  /* ===== PAINEL DE PREVISUALIZAÇÕES (DIREITA) ===== */
+  #togglePreviews { position:fixed; top:calc(60px + env(safe-area-inset-top)); right:10px; z-index:1500; background:#743FD7; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); line-height:0; display:flex; align-items:center; justify-content:center; transition:right .3s ease; }
+  #togglePreviews.aberto { right:330px; }
+  #togglePreviews svg { width:15px; height:15px; }
+  #painelPreviews { position:fixed; top:0; right:0; bottom:0; width:320px; background:#23262b; border-left:1px solid #333; z-index:1450; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .3s ease; box-shadow:-4px 0 16px rgba(0,0,0,.4); }
+  #painelPreviews.aberto { transform:translateX(0); }
+  #painelPreviews .preview-cab { padding:calc(10px + env(safe-area-inset-top)) 12px 10px; background:#2c3036; border-bottom:1px solid #333; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  #painelPreviews .preview-cab h3 { margin:0; font-size:14px; color:#fff; font-weight:700; }
+  #painelPreviews .preview-cab button { background:#3a3f46; padding:4px 8px; }
+  #previewsLista { flex:1; overflow-y:auto; padding:10px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  #previewsLista::-webkit-scrollbar { width:4px; }
+  #previewsLista::-webkit-scrollbar-thumb { background:#555; border-radius:4px; }
+  .preview-item { background:#2c3036; border:1px solid #3a3f46; border-radius:8px; margin-bottom:8px; overflow:hidden; cursor:pointer; transition:background .2s; }
+  .preview-item:hover { background:#33383f; }
+  .preview-item .preview-thumb { width:100%; height:120px; object-fit:cover; display:block; background:#1b1e23; }
+  .preview-item .preview-icone { display:flex; align-items:center; justify-content:center; color:#8a8a8a; }
+  .preview-item .preview-info { padding:8px 10px; }
+  .preview-item .preview-info b { font-weight:700; font-size:13px; }
+  .preview-item .preview-info .meta { font-size:11px; color:#999; margin-top:2px; }
+  .preview-grupo-titulo { display:flex; align-items:center; justify-content:space-between; background:#33383f; color:#c9c9c9; padding:6px 10px; border-radius:6px; margin:8px 0 6px; font-size:12px; font-weight:700; }
+  .preview-grupo-cont { background:#743FD7; color:#fff; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; }
+
   /* ===== CORREÇÃO DE ROLAGEM ===== */
   #painelMapa { overflow-y:auto !important; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   #painelMapa .panel:last-child { padding-bottom:90px; }
@@ -156,6 +178,8 @@
     .filtros select { min-width:100px; }
     .balao-botoes { flex-wrap:wrap; }
     #moveHint { top:calc(50px + env(safe-area-inset-top)); width:90%; left:50%; transform:translateX(-50%); flex-wrap:wrap; }
+    #painelPreviews { width:85%; max-width:340px; }
+    #togglePreviews.aberto { right:340px; }
   }
   @media (max-width: 480px){
     #modal .card { width:96vw; }
@@ -188,6 +212,7 @@
 <body>
 
 <button id="toggleBtn" title="Recolher/expandir menu"></button>
+<button id="togglePreviews" title="Previsualizações dos arquivos"></button>
 
 <div id="sidebar">
   <header>
@@ -195,7 +220,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v41 — Scroll Mapa e Itens</div>
+  <div id="banner">Versão v44 — Previews por material</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -294,6 +319,14 @@
 
 <div id="map"></div>
 <div id="moveHint">Clique no mapa para posicionar o item <button id="btnCancelarMov" onclick="cancelarMovimento()" style="background:#F51E16;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;font-family:inherit">Cancelar</button></div>
+
+<div id="painelPreviews">
+  <div class="preview-cab">
+    <h3>Arquivos dos itens</h3>
+    <button id="btnFecharPreviews" title="Fechar">✕</button>
+  </div>
+  <div id="previewsLista"></div>
+</div>
 
 <div id="modal">
   <div class="card">
@@ -418,6 +451,7 @@ $('icoCsvDown').innerHTML=ic('backup');
 $('icoCsvUp').innerHTML=ic('restaurar');
 if($('icoNovoItem'))$('icoNovoItem').innerHTML=ic('mais');
 $('toggleBtn').innerHTML=ic('setaEsq');
+$('togglePreviews').innerHTML=ic('setaEsq');
 
 function toggleSidebar(){
   var sb=$('sidebar'), btn=$('toggleBtn');
@@ -427,6 +461,61 @@ function toggleSidebar(){
   setTimeout(function(){ map.invalidateSize(); }, 350);
 }
 $('toggleBtn').onclick = toggleSidebar;
+
+function togglePreviews(){
+  var p=$('painelPreviews'), btn=$('togglePreviews');
+  var aberto = p.classList.toggle('aberto');
+  btn.classList.toggle('aberto', aberto);
+  btn.innerHTML = aberto ? ic('setaDir') : ic('setaEsq');
+  if(aberto) renderizarPreviews();
+  setTimeout(function(){ map.invalidateSize(); }, 350);
+}
+$('togglePreviews').onclick = togglePreviews;
+$('btnFecharPreviews').onclick = function(){ $('painelPreviews').classList.remove('aberto'); $('togglePreviews').classList.remove('aberto'); $('togglePreviews').innerHTML=ic('setaEsq'); setTimeout(function(){ map.invalidateSize(); },350); };
+
+// ===== PREVISUALIZAÇÕES — APENAS ITENS COM ARQUIVO, AGRUPADAS POR MATERIAL =====
+function renderizarPreviews(){
+  var box=$('previewsLista'); if(!box)return; box.innerHTML='';
+  var m=getMapaAtual();
+  if(!m){ box.innerHTML='<div class="vazio">Nenhum mapa selecionado</div>'; return; }
+  // Filtra apenas itens que têm arquivo (link) — fotos ficam de fora
+  var comArquivo = m.itens.filter(function(i){ return i.arquivo && i.arquivo.trim()!==''; });
+  if(!comArquivo.length){ box.innerHTML='<div class="vazio">Nenhum item com arquivo (link)</div>'; return; }
+  // Agrupa por material
+  var grupos={};
+  comArquivo.forEach(function(item){
+    var mat=(item.material||'').trim()||'(sem material)';
+    if(!grupos[mat]) grupos[mat]=[];
+    grupos[mat].push(item);
+  });
+  Object.keys(grupos).sort().forEach(function(mat){
+    var lista=grupos[mat];
+    var gt=document.createElement('div'); gt.className='preview-grupo-titulo';
+    gt.innerHTML='<span>'+mat+'</span><span class="preview-grupo-cont">'+lista.length+'</span>';
+    box.appendChild(gt);
+    lista.forEach(function(item){
+      var card=document.createElement('div'); card.className='preview-item';
+      var id=extrairDriveId(item.arquivo);
+      var thumb='';
+      if(id){ thumb='<img src="https://drive.google.com/thumbnail?id='+id+'&sz=w400" class="preview-thumb" onerror="this.style.visibility=\'hidden\'">'; }
+      else { thumb='<div class="preview-thumb preview-icone">'+ic('arquivo')+'</div>'; }
+      card.innerHTML=thumb+'<div class="preview-info"><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+'</div></div>';
+      card.onclick=function(){ irParaItem(item); };
+      box.appendChild(card);
+    });
+  });
+}
+
+function irParaItem(item){
+  if(item.colocado && item.x!=null && item.y!=null){
+    map.setView([item.y,item.x],map.getZoom());
+    setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150);
+  } else {
+    alert('Este item ainda não foi posicionado no mapa.');
+  }
+  destacaLista(item.id);
+  destacarPinsGrupo(item);
+}
 
 function mostrarAba(aba){
   var mapa = aba==='mapa';
