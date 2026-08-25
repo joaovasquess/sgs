@@ -488,7 +488,7 @@ function togglePreviews(){
 $('togglePreviews').onclick = togglePreviews;
 $('btnFecharPreviews').onclick = function(){ $('painelPreviews').classList.remove('aberto'); $('togglePreviews').classList.remove('aberto'); $('togglePreviews').innerHTML=ic('setaEsq'); setTimeout(function(){ map.invalidateSize(); },350); };
 
-// ===== PREVISUALIZAÇÕES — ARQUIVOS, AGRUPADAS POR MATERIAL E QUANTIDADE (RECOLHIDAS) =====
+// ===== PREVISUALIZAÇÕES — ARQUIVOS, AGRUPADAS POR MATERIAL E QUANTIDADE (RECOLHIDAS, 2 COLUNAS) =====
 function renderizarPreviews(){
   var box=$('previewsLista'); if(!box)return; box.innerHTML='';
   var m=getMapaAtual();
@@ -1194,4 +1194,160 @@ function importar(file){
       var d=JSON.parse(ev.target.result);
       if(!d.projetos)throw new Error('formato');
       projetos=d.projetos; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1;
-      projetoAtual=projetos.length?projetos[0].id:null; 
+      projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null;
+      corPor=d.corPor||'area';
+      salvar(); renderizarTudo(); alert('Restaurado com sucesso!');
+    }catch(e){ alert('Arquivo inválido.'); }
+  };
+  reader.readAsText(file);
+}
+
+// ===== BACKUP E RESTAURAÇÃO POR PROJETO (com opção de mesclar) =====
+function exportarProjeto(){
+  var p=getProjetoAtual();
+  if(!p){ alert('Selecione um projeto primeiro.'); return; }
+  try{
+    var limpo=JSON.parse(JSON.stringify(p, limparParaJSON));
+    var payload={tipo:'projeto', versao:2, projeto:limpo};
+    var json=JSON.stringify(payload, null, 2);
+    var url=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+    var nome='projeto-'+p.nome.replace(/[^\w\-]+/g,'-').toLowerCase()+'-backup.json';
+    var kb=(json.length/1024).toFixed(0);
+    var modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML='<div style="background:#26292e;border:1px solid #3a3f46;padding:22px;border-radius:10px;max-width:440px;text-align:center;color:#e5e5e5;font-family:inherit">'
+      +'<h3 style="margin:0 0 10px;color:#fff">Backup do projeto pronto</h3>'
+      +'<p style="font-size:13px;margin:0 0 6px">Projeto: <b>'+p.nome+'</b></p>'
+      +'<p style="font-size:12px;color:#999;margin:0 0 14px">Tamanho: <b>'+kb+' KB</b></p>'
+      +'<a href="'+url+'" download="'+nome+'" style="display:inline-block;background:#4498DC;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700">Baixar backup do projeto</a>'
+      +'<br><button onclick="this.parentNode.parentNode.remove()" style="margin-top:14px;background:#3a3f46">Fechar</button>'
+      +'</div>';
+    document.body.appendChild(modal);
+    try{ var a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); document.body.removeChild(a); }catch(e){}
+  }catch(e){ alert('Erro ao gerar backup do projeto: '+e.message); }
+}
+
+function importarProjeto(file){
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      var proj=(d&&d.tipo==='projeto')?d.projeto:(d&&d.projeto?d.projeto:d);
+      if(!proj||!proj.nome||!Array.isArray(proj.mapas)) throw new Error('formato');
+      var nome=proj.nome;
+      var existente=projetos.find(function(x){return x.nome===nome;});
+      var mesclar=false;
+      if(existente){
+        mesclar=confirm('Já existe um projeto com o nome "'+nome+'".\n\nOK = Mesclar (substituir o projeto existente pelos dados do backup)\nCancelar = Criar cópia');
+      }
+      var novosMapas=[];
+      proj.mapas.forEach(function(m){
+        var novoMapa={id:proximoIdMapa++, nome:m.nome||'Mapa', imagem:m.imagem||null, larg:m.larg||null, alt:m.alt||null, itens:[]};
+        (m.itens||[]).forEach(function(i){
+          novoMapa.itens.push({id:proximoIdItem++, colocado:!!i.colocado, x:(i.x!=null?i.x:null), y:(i.y!=null?i.y:null), area:i.area||'', setor:i.setor||'', item:i.item||'', status:i.status||'Criação', material:i.material||'', largura:i.largura||null, altura:i.altura||null, arquivo:i.arquivo||'', obs:i.obs||'', fotos:Array.isArray(i.fotos)?i.fotos:[]});
+        });
+        novosMapas.push(novoMapa);
+      });
+      if(mesclar&&existente){
+        if(existente.mapas) existente.mapas.forEach(function(m){ if(m&&m.itens)m.itens.forEach(function(i){ if(i._marker){ delete i._marker; } }); });
+        existente.mapas=novosMapas;
+        projetoAtual=existente.id;
+        mapaAtual=novosMapas.length?novosMapas[0].id:null;
+        salvar(); renderizarTudo();
+        alert('Projeto "'+nome+'" mesclado (substituído) com sucesso.');
+      } else {
+        var base=nome, n=2;
+        while(projetos.some(function(x){return x.nome===base;})){ base=nome+' ('+n+')'; n++; }
+        var novo={id:proximoIdProjeto++, nome:base, mapas:novosMapas};
+        projetos.push(novo);
+        projetoAtual=novo.id;
+        mapaAtual=novosMapas.length?novosMapas[0].id:null;
+        salvar(); renderizarTudo();
+        alert('Projeto "'+nome+'" restaurado como "'+base+'".');
+      }
+    }catch(e){ alert('Arquivo inválido. Use um backup de projeto gerado pelo sistema.'); }
+  };
+  reader.readAsText(file);
+}
+
+$('tabMapa').onclick=function(){ mostrarAba('mapa'); };
+$('tabItens').onclick=function(){ mostrarAba('itens'); };
+$('btnNovoItem').onclick=function(){ if(modoArrastar)toggleArrastar(); editandoItem={_novo:true,colocado:false,fotos:[]}; abrirModal(); };
+$('selProjeto').addEventListener('change',function(e){ projetoAtual=Number(e.target.value); mapaAtual=getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null; salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); });
+$('selMapa').addEventListener('change',function(e){ mapaAtual=Number(e.target.value); salvar(); renderizarMapa(); renderizarItens(); });
+$('btnNovoProjeto').onclick=function(){ var n=prompt('Nome do projeto:'); if(n){ criarProjeto(n); salvar(); renderizarTudo(); } };
+$('btnRenomearProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; var n=prompt('Novo nome:',p.nome); if(n){ p.nome=n; salvar(); renderizarProjetos(); } };
+$('btnExcluirProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; if(confirm('Excluir projeto "'+p.nome+'"?')){ excluirProjeto(p.id); salvar(); renderizarTudo(); } };
+$('btnNovoMapa').onclick=function(){ var n=prompt('Nome do mapa (ex: Planta Geral):'); if(n){ criarMapa(projetoAtual,n); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
+$('btnRenomearMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; var n=prompt('Novo nome:',m.nome); if(n){ m.nome=n; salvar(); renderizarMapas(); } };
+$('btnExcluirMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; if(confirm('Excluir mapa "'+m.nome+'"?')){ excluirMapa(projetoAtual,m.id); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
+
+$('planta').addEventListener('change',function(e){
+  var m=getMapaAtual(); if(!m)return;
+  var file=e.target.files[0]; if(!file)return;
+  var isPDF=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+  if(isPDF){
+    var r=new FileReader(); r.onload=function(ev){ carregarPDF(ev.target.result); }; r.readAsArrayBuffer(file);
+  } else {
+    var r2=new FileReader();
+    r2.onload=function(ev){
+      var dataUrl=ev.target.result;
+      var img=new Image();
+      img.onload=function(){ m.imagem=dataUrl; m.larg=img.width; m.alt=img.height; salvar(); renderizarMapa(); };
+      img.src=dataUrl;
+    };
+    r2.readAsDataURL(file);
+  }
+  this.value='';
+});
+
+$('btnAplicarPDF').onclick=aplicarPDF;
+$('btnArrastar').onclick=toggleArrastar;
+$('btnEscurecer').onclick=toggleEscurecer;
+$('selCorPor').addEventListener('change',function(e){ corPor=e.target.value; salvar(); renderizarMapa(); renderizarItens(); });
+$('btnExportar').onclick=exportar;
+$('btnImportar').onclick=function(){ if($('importFile'))$('importFile').click(); };
+$('importFile').addEventListener('change',function(e){ if(e.target.files[0])importar(e.target.files[0]); this.value=''; });
+$('btnExportarProjeto').onclick=exportarProjeto;
+$('btnImportarProjeto').onclick=function(){ if($('importProjeto'))$('importProjeto').click(); };
+$('importProjeto').addEventListener('change',function(e){ if(e.target.files[0])importarProjeto(e.target.files[0]); this.value=''; });
+$('btnExportarCSV').onclick=exportarCSV;
+$('btnImportarCSV').onclick=function(){ if($('importCSV'))$('importCSV').click(); };
+$('importCSV').addEventListener('change',function(e){ if(e.target.files[0])importarCSV(e.target.files[0]); this.value=''; });
+$('filtroArea').addEventListener('change',renderizarItens);
+$('filtroSetor').addEventListener('change',renderizarItens);
+$('filtroStatus').addEventListener('change',renderizarItens);
+$('selGrupo').addEventListener('change',renderizarItens);
+$('btnSalvar').onclick=salvarItem;
+$('btnCancelar').onclick=fecharModal;
+
+$('fFotosInput').addEventListener('change',function(e){
+  var files=e.target.files; if(!files||!files.length)return;
+  for(var i=0;i<files.length;i++){
+    (function(file){
+      var r=new FileReader();
+      r.onload=function(ev){ fotosNovas.push(ev.target.result); renderFotosPrev(); };
+      r.readAsDataURL(file);
+    })(files[i]);
+  }
+  this.value='';
+});
+
+carregar();
+renderizarTudo();
+
+if(window.innerWidth<=900){
+  $('sidebar').classList.add('recolhida');
+  $('toggleBtn').classList.add('recolhida');
+  $('toggleBtn').innerHTML=ic('setaDir');
+  setTimeout(function(){ map.invalidateSize(); }, 100);
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
