@@ -123,7 +123,7 @@
   svg { width:14px; height:14px; flex-shrink:0; }
 
   /* ===== PAINEL DE PREVISUALIZAÇÕES (DIREITA) ===== */
-  #togglePreviews { position:fixed; top:calc(60px + env(safe-area-inset-top)); right:10px; z-index:1500; background:#743FD7; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); line-height:0; display:flex; align-items:center; justify-content:center; transition:right .3s ease; }
+  #togglePreviews { position:fixed; top:calc(100px + env(safe-area-inset-top)); right:10px; z-index:1500; background:#743FD7; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); line-height:0; display:flex; align-items:center; justify-content:center; transition:right .3s ease; }
   #togglePreviews.aberto { right:330px; }
   #togglePreviews svg { width:15px; height:15px; }
   #painelPreviews { position:fixed; top:0; right:0; bottom:0; width:320px; background:#23262b; border-left:1px solid #333; z-index:1450; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .3s ease; box-shadow:-4px 0 16px rgba(0,0,0,.4); }
@@ -134,15 +134,30 @@
   #previewsLista { flex:1; overflow-y:auto; padding:10px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   #previewsLista::-webkit-scrollbar { width:4px; }
   #previewsLista::-webkit-scrollbar-thumb { background:#555; border-radius:4px; }
-  .preview-item { background:#2c3036; border:1px solid #3a3f46; border-radius:8px; margin-bottom:8px; overflow:hidden; cursor:pointer; transition:background .2s; }
+  .preview-item { background:#2c3036; border:1px solid #3a3f46; border-radius:8px; overflow:hidden; cursor:pointer; transition:background .2s; }
   .preview-item:hover { background:#33383f; }
-  .preview-item .preview-thumb { width:100%; height:120px; object-fit:cover; display:block; background:#1b1e23; }
+  .preview-item .preview-thumb { width:100%; height:90px; object-fit:cover; display:block; background:#1b1e23; }
   .preview-item .preview-icone { display:flex; align-items:center; justify-content:center; color:#8a8a8a; }
-  .preview-item .preview-info { padding:8px 10px; }
-  .preview-item .preview-info b { font-weight:700; font-size:13px; }
-  .preview-item .preview-info .meta { font-size:11px; color:#999; margin-top:2px; }
-  .preview-grupo-titulo { display:flex; align-items:center; justify-content:space-between; background:#33383f; color:#c9c9c9; padding:6px 10px; border-radius:6px; margin:8px 0 6px; font-size:12px; font-weight:700; }
-  .preview-grupo-cont { background:#743FD7; color:#fff; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; }
+  .preview-item .preview-info { padding:6px 8px; }
+  .preview-item .preview-info b { font-weight:700; font-size:12px; display:block; }
+  .preview-item .preview-info .meta { font-size:10px; color:#999; margin-top:2px; }
+  .preview-grupo { background:#26292e; border:1px solid #333; border-radius:8px; margin-bottom:8px; overflow:hidden; }
+  .preview-grupo .preview-grupo-titulo { display:flex; align-items:center; gap:6px; background:#33383f; color:#c9c9c9; padding:8px 10px; cursor:pointer; font-size:12px; font-weight:700; }
+  .preview-grupo .preview-grupo-titulo:hover { background:#3a3f46; }
+  .preview-grupo .preview-grupo-nome { flex:1; }
+  .preview-grupo .preview-grupo-seta { display:inline-flex; color:#4498DC; transition:transform .2s; }
+  .preview-grupo .preview-grupo-seta svg { width:12px; height:12px; }
+  .preview-grupo.aberto .preview-grupo-seta { transform:rotate(90deg); }
+  .preview-grupo .preview-grupo-corpo { display:none; border-top:1px solid #333; padding:8px; }
+  .preview-grupo.aberto .preview-grupo-corpo { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .preview-grupo-corpo > .preview-qtd { grid-column:1 / -1; }
+  .preview-grupo-cont { background:#743FD7; color:#fff; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; flex-shrink:0; }
+  .preview-qtd { background:#2c3036; border:1px solid #3a3f46; border-radius:6px; overflow:hidden; }
+  .preview-qtd .preview-qtd-cab { display:flex; align-items:center; gap:6px; padding:7px 8px; cursor:pointer; font-size:12px; }
+  .preview-qtd .preview-qtd-cab:hover { background:#33383f; }
+  .preview-qtd .preview-qtd-cab b { font-weight:700; flex:1; }
+  .preview-qtd .preview-qtd-sub { display:none; border-top:1px solid #333; padding:6px; }
+  .preview-qtd.aberto .preview-qtd-sub { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
 
   /* ===== CORREÇÃO DE ROLAGEM ===== */
   #painelMapa { overflow-y:auto !important; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
@@ -220,7 +235,7 @@
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
   </header>
-  <div id="banner">Versão v44 — Previews por material</div>
+  <div id="banner">Versão v45 — Previews recolhidos + 2 colunas</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -473,7 +488,7 @@ function togglePreviews(){
 $('togglePreviews').onclick = togglePreviews;
 $('btnFecharPreviews').onclick = function(){ $('painelPreviews').classList.remove('aberto'); $('togglePreviews').classList.remove('aberto'); $('togglePreviews').innerHTML=ic('setaEsq'); setTimeout(function(){ map.invalidateSize(); },350); };
 
-// ===== PREVISUALIZAÇÕES — APENAS ITENS COM ARQUIVO, AGRUPADAS POR MATERIAL =====
+// ===== PREVISUALIZAÇÕES — ARQUIVOS, AGRUPADAS POR MATERIAL E QUANTIDADE (RECOLHIDAS) =====
 function renderizarPreviews(){
   var box=$('previewsLista'); if(!box)return; box.innerHTML='';
   var m=getMapaAtual();
@@ -481,7 +496,7 @@ function renderizarPreviews(){
   // Filtra apenas itens que têm arquivo (link) — fotos ficam de fora
   var comArquivo = m.itens.filter(function(i){ return i.arquivo && i.arquivo.trim()!==''; });
   if(!comArquivo.length){ box.innerHTML='<div class="vazio">Nenhum item com arquivo (link)</div>'; return; }
-  // Agrupa por material
+  // 1º nível: material (estender/retrair) — abre RECOLHIDO
   var grupos={};
   comArquivo.forEach(function(item){
     var mat=(item.material||'').trim()||'(sem material)';
@@ -490,20 +505,45 @@ function renderizarPreviews(){
   });
   Object.keys(grupos).sort().forEach(function(mat){
     var lista=grupos[mat];
+    var grupo=document.createElement('div'); grupo.className='preview-grupo'; // sem 'aberto' = recolhido
     var gt=document.createElement('div'); gt.className='preview-grupo-titulo';
-    gt.innerHTML='<span>'+mat+'</span><span class="preview-grupo-cont">'+lista.length+'</span>';
-    box.appendChild(gt);
-    lista.forEach(function(item){
-      var card=document.createElement('div'); card.className='preview-item';
-      var id=extrairDriveId(item.arquivo);
-      var thumb='';
-      if(id){ thumb='<img src="https://drive.google.com/thumbnail?id='+id+'&sz=w400" class="preview-thumb" onerror="this.style.visibility=\'hidden\'">'; }
-      else { thumb='<div class="preview-thumb preview-icone">'+ic('arquivo')+'</div>'; }
-      card.innerHTML=thumb+'<div class="preview-info"><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+'</div></div>';
-      card.onclick=function(){ irParaItem(item); };
-      box.appendChild(card);
+    gt.innerHTML='<span class="preview-grupo-seta">'+ic('chevron')+'</span><span class="preview-grupo-nome">'+mat+'</span><span class="preview-grupo-cont">'+lista.length+'</span>';
+    gt.onclick=function(){ grupo.classList.toggle('aberto'); };
+    grupo.appendChild(gt);
+    var corpo=document.createElement('div'); corpo.className='preview-grupo-corpo';
+    // 2º nível: agrupa por nome base (quantidade), como na aba Itens — abre RECOLHIDO
+    var porBase={};
+    lista.forEach(function(i){ var b=baseNome(i); if(!porBase[b]) porBase[b]=[]; porBase[b].push(i); });
+    Object.keys(porBase).sort().forEach(function(base){
+      var itensBase=porBase[base];
+      if(itensBase.length>1){
+        var gq=document.createElement('div'); gq.className='preview-qtd'; // sem 'aberto' = recolhido
+        var cab=document.createElement('div'); cab.className='preview-qtd-cab';
+        cab.innerHTML='<span class="preview-grupo-seta">'+ic('chevron')+'</span><b>'+base+' ('+itensBase.length+')</b><span class="preview-grupo-cont">'+itensBase.length+'</span>';
+        cab.onclick=function(){ gq.classList.toggle('aberto'); };
+        gq.appendChild(cab);
+        var sub=document.createElement('div'); sub.className='preview-qtd-sub';
+        itensBase.forEach(function(item){ sub.appendChild(criarCardPreview(item)); });
+        gq.appendChild(sub);
+        corpo.appendChild(gq);
+      } else {
+        corpo.appendChild(criarCardPreview(itensBase[0]));
+      }
     });
+    grupo.appendChild(corpo);
+    box.appendChild(grupo);
   });
+}
+
+function criarCardPreview(item){
+  var card=document.createElement('div'); card.className='preview-item';
+  var id=extrairDriveId(item.arquivo);
+  var thumb='';
+  if(id){ thumb='<img src="https://drive.google.com/thumbnail?id='+id+'&sz=w400" class="preview-thumb" onerror="this.style.visibility=\'hidden\'">'; }
+  else { thumb='<div class="preview-thumb preview-icone">'+ic('arquivo')+'</div>'; }
+  card.innerHTML=thumb+'<div class="preview-info"><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+'</div></div>';
+  card.onclick=function(){ irParaItem(item); };
+  return card;
 }
 
 function irParaItem(item){
@@ -1154,160 +1194,4 @@ function importar(file){
       var d=JSON.parse(ev.target.result);
       if(!d.projetos)throw new Error('formato');
       projetos=d.projetos; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1;
-      projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null;
-      corPor=d.corPor||'area';
-      salvar(); renderizarTudo(); alert('Restaurado com sucesso!');
-    }catch(e){ alert('Arquivo inválido.'); }
-  };
-  reader.readAsText(file);
-}
-
-// ===== BACKUP E RESTAURAÇÃO POR PROJETO (com opção de mesclar) =====
-function exportarProjeto(){
-  var p=getProjetoAtual();
-  if(!p){ alert('Selecione um projeto primeiro.'); return; }
-  try{
-    var limpo=JSON.parse(JSON.stringify(p, limparParaJSON));
-    var payload={tipo:'projeto', versao:2, projeto:limpo};
-    var json=JSON.stringify(payload, null, 2);
-    var url=URL.createObjectURL(new Blob([json],{type:'application/json'}));
-    var nome='projeto-'+p.nome.replace(/[^\w\-]+/g,'-').toLowerCase()+'-backup.json';
-    var kb=(json.length/1024).toFixed(0);
-    var modal=document.createElement('div');
-    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;';
-    modal.innerHTML='<div style="background:#26292e;border:1px solid #3a3f46;padding:22px;border-radius:10px;max-width:440px;text-align:center;color:#e5e5e5;font-family:inherit">'
-      +'<h3 style="margin:0 0 10px;color:#fff">Backup do projeto pronto</h3>'
-      +'<p style="font-size:13px;margin:0 0 6px">Projeto: <b>'+p.nome+'</b></p>'
-      +'<p style="font-size:12px;color:#999;margin:0 0 14px">Tamanho: <b>'+kb+' KB</b></p>'
-      +'<a href="'+url+'" download="'+nome+'" style="display:inline-block;background:#4498DC;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700">Baixar backup do projeto</a>'
-      +'<br><button onclick="this.parentNode.parentNode.remove()" style="margin-top:14px;background:#3a3f46">Fechar</button>'
-      +'</div>';
-    document.body.appendChild(modal);
-    try{ var a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); document.body.removeChild(a); }catch(e){}
-  }catch(e){ alert('Erro ao gerar backup do projeto: '+e.message); }
-}
-
-function importarProjeto(file){
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    try{
-      var d=JSON.parse(ev.target.result);
-      var proj=(d&&d.tipo==='projeto')?d.projeto:(d&&d.projeto?d.projeto:d);
-      if(!proj||!proj.nome||!Array.isArray(proj.mapas)) throw new Error('formato');
-      var nome=proj.nome;
-      var existente=projetos.find(function(x){return x.nome===nome;});
-      var mesclar=false;
-      if(existente){
-        mesclar=confirm('Já existe um projeto com o nome "'+nome+'".\n\nOK = Mesclar (substituir o projeto existente pelos dados do backup)\nCancelar = Criar cópia');
-      }
-      var novosMapas=[];
-      proj.mapas.forEach(function(m){
-        var novoMapa={id:proximoIdMapa++, nome:m.nome||'Mapa', imagem:m.imagem||null, larg:m.larg||null, alt:m.alt||null, itens:[]};
-        (m.itens||[]).forEach(function(i){
-          novoMapa.itens.push({id:proximoIdItem++, colocado:!!i.colocado, x:(i.x!=null?i.x:null), y:(i.y!=null?i.y:null), area:i.area||'', setor:i.setor||'', item:i.item||'', status:i.status||'Criação', material:i.material||'', largura:i.largura||null, altura:i.altura||null, arquivo:i.arquivo||'', obs:i.obs||'', fotos:Array.isArray(i.fotos)?i.fotos:[]});
-        });
-        novosMapas.push(novoMapa);
-      });
-      if(mesclar&&existente){
-        if(existente.mapas) existente.mapas.forEach(function(m){ if(m&&m.itens)m.itens.forEach(function(i){ if(i._marker){ delete i._marker; } }); });
-        existente.mapas=novosMapas;
-        projetoAtual=existente.id;
-        mapaAtual=novosMapas.length?novosMapas[0].id:null;
-        salvar(); renderizarTudo();
-        alert('Projeto "'+nome+'" mesclado (substituído) com sucesso.');
-      } else {
-        var base=nome, n=2;
-        while(projetos.some(function(x){return x.nome===base;})){ base=nome+' ('+n+')'; n++; }
-        var novo={id:proximoIdProjeto++, nome:base, mapas:novosMapas};
-        projetos.push(novo);
-        projetoAtual=novo.id;
-        mapaAtual=novosMapas.length?novosMapas[0].id:null;
-        salvar(); renderizarTudo();
-        alert('Projeto "'+nome+'" restaurado como "'+base+'".');
-      }
-    }catch(e){ alert('Arquivo inválido. Use um backup de projeto gerado pelo sistema.'); }
-  };
-  reader.readAsText(file);
-}
-
-$('tabMapa').onclick=function(){ mostrarAba('mapa'); };
-$('tabItens').onclick=function(){ mostrarAba('itens'); };
-$('btnNovoItem').onclick=function(){ if(modoArrastar)toggleArrastar(); editandoItem={_novo:true,colocado:false,fotos:[]}; abrirModal(); };
-$('selProjeto').addEventListener('change',function(e){ projetoAtual=Number(e.target.value); mapaAtual=getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null; salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); });
-$('selMapa').addEventListener('change',function(e){ mapaAtual=Number(e.target.value); salvar(); renderizarMapa(); renderizarItens(); });
-$('btnNovoProjeto').onclick=function(){ var n=prompt('Nome do projeto:'); if(n){ criarProjeto(n); salvar(); renderizarTudo(); } };
-$('btnRenomearProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; var n=prompt('Novo nome:',p.nome); if(n){ p.nome=n; salvar(); renderizarProjetos(); } };
-$('btnExcluirProjeto').onclick=function(){ var p=getProjetoAtual(); if(!p)return; if(confirm('Excluir projeto "'+p.nome+'"?')){ excluirProjeto(p.id); salvar(); renderizarTudo(); } };
-$('btnNovoMapa').onclick=function(){ var n=prompt('Nome do mapa (ex: Planta Geral):'); if(n){ criarMapa(projetoAtual,n); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
-$('btnRenomearMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; var n=prompt('Novo nome:',m.nome); if(n){ m.nome=n; salvar(); renderizarMapas(); } };
-$('btnExcluirMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; if(confirm('Excluir mapa "'+m.nome+'"?')){ excluirMapa(projetoAtual,m.id); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
-
-$('planta').addEventListener('change',function(e){
-  var m=getMapaAtual(); if(!m)return;
-  var file=e.target.files[0]; if(!file)return;
-  var isPDF=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
-  if(isPDF){
-    var r=new FileReader(); r.onload=function(ev){ carregarPDF(ev.target.result); }; r.readAsArrayBuffer(file);
-  } else {
-    var r2=new FileReader();
-    r2.onload=function(ev){
-      var dataUrl=ev.target.result;
-      var img=new Image();
-      img.onload=function(){ m.imagem=dataUrl; m.larg=img.width; m.alt=img.height; salvar(); renderizarMapa(); };
-      img.src=dataUrl;
-    };
-    r2.readAsDataURL(file);
-  }
-  this.value='';
-});
-
-$('btnAplicarPDF').onclick=aplicarPDF;
-$('btnArrastar').onclick=toggleArrastar;
-$('btnEscurecer').onclick=toggleEscurecer;
-$('selCorPor').addEventListener('change',function(e){ corPor=e.target.value; salvar(); renderizarMapa(); renderizarItens(); });
-$('btnExportar').onclick=exportar;
-$('btnImportar').onclick=function(){ if($('importFile'))$('importFile').click(); };
-$('importFile').addEventListener('change',function(e){ if(e.target.files[0])importar(e.target.files[0]); this.value=''; });
-$('btnExportarProjeto').onclick=exportarProjeto;
-$('btnImportarProjeto').onclick=function(){ if($('importProjeto'))$('importProjeto').click(); };
-$('importProjeto').addEventListener('change',function(e){ if(e.target.files[0])importarProjeto(e.target.files[0]); this.value=''; });
-$('btnExportarCSV').onclick=exportarCSV;
-$('btnImportarCSV').onclick=function(){ if($('importCSV'))$('importCSV').click(); };
-$('importCSV').addEventListener('change',function(e){ if(e.target.files[0])importarCSV(e.target.files[0]); this.value=''; });
-$('filtroArea').addEventListener('change',renderizarItens);
-$('filtroSetor').addEventListener('change',renderizarItens);
-$('filtroStatus').addEventListener('change',renderizarItens);
-$('selGrupo').addEventListener('change',renderizarItens);
-$('btnSalvar').onclick=salvarItem;
-$('btnCancelar').onclick=fecharModal;
-
-$('fFotosInput').addEventListener('change',function(e){
-  var files=e.target.files; if(!files||!files.length)return;
-  for(var i=0;i<files.length;i++){
-    (function(file){
-      var r=new FileReader();
-      r.onload=function(ev){ fotosNovas.push(ev.target.result); renderFotosPrev(); };
-      r.readAsDataURL(file);
-    })(files[i]);
-  }
-  this.value='';
-});
-
-carregar();
-renderizarTudo();
-
-if(window.innerWidth<=900){
-  $('sidebar').classList.add('recolhida');
-  $('toggleBtn').classList.add('recolhida');
-  $('toggleBtn').innerHTML=ic('setaDir');
-  setTimeout(function(){ map.invalidateSize(); }, 100);
-}
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(){});
-  });
-}
-</script>
-</body>
-</html>
+      projetoAtual=projetos.length?projetos[0].id:null; 
