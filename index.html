@@ -203,6 +203,19 @@
   body.modo-fornecedor .admin-only { display:none !important; }
   body.modo-admin .fornecedor-only { display:none !important; }
 
+  /* ===== FIX SOBREPOSIÇÃO MOBILE ===== */
+  #map { z-index:0; position:relative; }
+  #painelMapa, #painelItens { position:relative; z-index:1; }
+  #toggleBtn { z-index:1701; }
+  #togglePreviews { z-index:1501; }
+  #painelPreviews { z-index:1450; }
+  #sidebar { z-index:1600; }
+  #moveHint { z-index:1550; }
+  @media (max-width: 900px){
+    #painelPreviews, #sidebar { will-change:transform; }
+    #previewsLista { -webkit-overflow-scrolling:touch; }
+  }
+
   @media (max-width: 900px){
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
     #sidebar:not(.recolhida){ transform:translateX(0); }
@@ -541,6 +554,14 @@ function mostrarAviso(msg, ok){
 }
 
 function toggleSidebar(){
+  if(window.innerWidth<=900 && !$('sidebar').classList.contains('recolhida')){
+    var p=$('painelPreviews');
+    if(p.classList.contains('aberto')){
+      p.classList.remove('aberto');
+      $('togglePreviews').classList.remove('aberto');
+      $('togglePreviews').innerHTML=ic('setaEsq');
+    }
+  }
   var sb=$('sidebar'), btn=$('toggleBtn');
   var recolhida = sb.classList.toggle('recolhida');
   btn.classList.toggle('recolhida', recolhida);
@@ -550,6 +571,14 @@ function toggleSidebar(){
 $('toggleBtn').onclick = toggleSidebar;
 
 function togglePreviews(){
+  if(window.innerWidth<=900 && !$('painelPreviews').classList.contains('aberto')){
+    var sb=$('sidebar');
+    if(!sb.classList.contains('recolhida')){
+      sb.classList.add('recolhida');
+      $('toggleBtn').classList.add('recolhida');
+      $('toggleBtn').innerHTML=ic('setaDir');
+    }
+  }
   var p=$('painelPreviews'), btn=$('togglePreviews');
   var aberto = p.classList.toggle('aberto');
   btn.classList.toggle('aberto', aberto);
@@ -560,11 +589,11 @@ function togglePreviews(){
 $('togglePreviews').onclick = togglePreviews;
 $('btnFecharPreviews').onclick = function(){ $('painelPreviews').classList.remove('aberto'); $('togglePreviews').classList.remove('aberto'); $('togglePreviews').innerHTML=ic('setaEsq'); setTimeout(function(){ map.invalidateSize(); },350); };
 
-// ===== TELA DE ACESSO =====
+// ===== TELA DE ACESSO (sessão persiste em localStorage até apertar Sair) =====
 function entrarComo(f){
   funcao = f;
   isAdmin = (funcao === 'admin');
-  try{ sessionStorage.setItem('sgs_funcao', funcao); }catch(e){}
+  try{ localStorage.setItem('sgs_funcao', funcao); }catch(e){}
   document.body.className = isAdmin ? 'modo-admin' : 'modo-fornecedor';
   $('bannerTexto').textContent = isAdmin ? 'Modo Admin' : 'Modo Fornecedor';
   $('telaAcesso').style.display = 'none';
@@ -574,7 +603,7 @@ function entrarComo(f){
   setTimeout(function(){ map.invalidateSize(); }, 150);
 }
 function sair(){
-  try{ sessionStorage.removeItem('sgs_funcao'); }catch(e){}
+  try{ localStorage.removeItem('sgs_funcao'); }catch(e){}
   funcao = null; isAdmin = false;
   document.body.className = '';
   $('bannerTexto').textContent = 'SGS';
@@ -1428,10 +1457,10 @@ $('fFotosInput').addEventListener('change',function(e){
   this.value='';
 });
 
-// ===== INÍCIO: mostra a tela de acesso ou entra direto (sessão ativa) =====
+// ===== INÍCIO: mantém o perfil salvo (refresh/app reaberto) ou mostra a tela de acesso =====
 (function(){
   try{
-    var f = sessionStorage.getItem('sgs_funcao');
+    var f = localStorage.getItem('sgs_funcao');
     if(f === 'admin' || f === 'fornecedor'){
       entrarComo(f);
     } else {
