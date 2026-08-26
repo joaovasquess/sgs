@@ -24,6 +24,22 @@
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; }
   body { font-family:'Helvetica Neue',Arial,sans-serif; font-weight:400; display:flex; height:100vh; height:100dvh; color:#e5e5e5; overflow:hidden; background:#1b1e23; }
+
+  /* ===== TELA DE ACESSO ===== */
+  #telaAcesso { display:none; position:fixed; inset:0; z-index:9000; background:#1b1e23; align-items:center; justify-content:center; }
+  #telaAcesso.visivel { display:flex; }
+  .acesso-card { background:#23262b; border:1px solid #3a3f46; border-radius:14px; padding:30px 26px; width:320px; max-width:92vw; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.6); }
+  .acesso-logo { font-size:44px; font-weight:900; letter-spacing:6px; color:#fff; }
+  .acesso-logo span { color:#F51E16; }
+  .acesso-sub { font-size:11px; color:#999; margin:4px 0 22px; letter-spacing:1px; }
+  .acesso-botoes { display:flex; flex-direction:column; gap:10px; }
+  .acesso-botoes button { width:100%; padding:13px; font-size:15px; justify-content:center; border-radius:8px; font-weight:700; }
+  #btnEntrarFornecedor { background:#743FD7; }
+  #btnMostrarAdmin { background:#3a3f46; }
+  #acessoAdmin { margin-top:14px; border-top:1px solid #333; padding-top:14px; text-align:left; }
+  #acessoAdmin label { font-size:12px; color:#999; display:block; margin-top:8px; }
+  .acesso-erro { color:#F51E16; font-size:12px; margin-top:10px; text-align:center; font-weight:700; }
+
   #sidebar { width:400px; min-width:320px; background:#23262b; display:flex; flex-direction:column; border-right:1px solid #333; transition:margin-left .3s ease; }
   #sidebar.recolhida { margin-left:-400px; }
   #toggleBtn { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:410px; z-index:1500; background:#4498DC; color:#fff; border:none; border-radius:6px; padding:7px 9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.4); transition:left .3s ease; line-height:0; display:flex; align-items:center; justify-content:center; }
@@ -33,6 +49,7 @@
   #sidebar header .logo-top { max-height:42px; margin-bottom:8px; background:transparent; border:none; border-radius:0; padding:0; filter:brightness(0) invert(1); }
   #sidebar header h1 { margin:0; font-size:26px; letter-spacing:4px; font-weight:900; }
   #sidebar header .sub { font-size:11px; color:#ffd9d6; margin-top:2px; letter-spacing:1px; font-weight:300; }
+  #btnSair { margin-top:8px; background:rgba(255,255,255,.15); color:#fff; font-size:11px; padding:3px 12px; border-radius:6px; border:none; cursor:pointer; font-weight:700; }
   #banner { background:#743FD7; color:#fff; font-size:12px; padding:5px 14px; font-weight:700; text-align:center; }
   #tabs { display:flex; background:#23262b; border-bottom:1px solid #333; }
   #tabs button { flex:1; border:none; padding:10px; cursor:pointer; background:#23262b; font-weight:500; font-size:13px; color:#888; display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; }
@@ -176,6 +193,9 @@
   .item.destaque-suave { background:#3b4a5c !important; box-shadow:inset 0 0 0 1px rgba(68,152,220,.55); }
   .item.destaque-claro { background:#3d4a5e !important; }
 
+  /* ===== FORNECEDOR: esconde ferramentas de edição ===== */
+  body.modo-fornecedor .admin-only { display:none !important; }
+
   @media (max-width: 900px){
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
     #sidebar:not(.recolhida){ transform:translateX(0); }
@@ -192,7 +212,6 @@
     #sidebar header .logo-top { max-height:34px; }
     .filtros select { min-width:100px; }
     .balao-botoes { flex-wrap:wrap; }
-    #moveHint { top:calc(50px + env(safe-area-inset-top)); width:90%; left:50%; transform:translateX(-50%); flex-wrap:wrap; }
     #painelPreviews { width:85%; max-width:340px; }
     #togglePreviews.aberto { right:340px; }
   }
@@ -226,6 +245,26 @@
 </head>
 <body>
 
+<div id="telaAcesso">
+  <div class="acesso-card">
+    <div class="acesso-logo">SGS</div>
+    <div class="acesso-sub">Sistema de Geolocalização de Sinalização</div>
+    <div class="acesso-botoes">
+      <button id="btnEntrarFornecedor">Entrar como Fornecedor</button>
+      <button id="btnMostrarAdmin">Área do Admin</button>
+    </div>
+    <div id="acessoAdmin">
+      <label>USUÁRIO</label><input id="admUsuario" autocomplete="username">
+      <label>SENHA</label><input id="admSenha" type="password" autocomplete="current-password">
+      <div class="row">
+        <button id="btnVoltarAcesso" class="secondary">Voltar</button>
+        <button id="btnEntrarAdmin">Entrar</button>
+      </div>
+      <div id="admErro" class="acesso-erro"></div>
+    </div>
+  </div>
+</div>
+
 <button id="toggleBtn" title="Recolher/expandir menu"></button>
 <button id="togglePreviews" title="Previsualizações dos arquivos"></button>
 
@@ -234,8 +273,9 @@
     <img id="logoTop" class="logo-top" src="logo.png" alt="MULTI" onerror="this.style.display='none'">
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
+    <div><button id="btnSair">Sair</button></div>
   </header>
-  <div id="banner">Versão v45 — Previews recolhidos + 2 colunas</div>
+  <div id="banner">Versão v46 — Fornecedor / Admin</div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -247,22 +287,22 @@
       <h3>Projetos</h3>
       <div class="row"><select id="selProjeto"></select></div>
       <div class="row">
-        <button id="btnNovoProjeto"><span id="icoNovo"></span> Projeto</button>
-        <button id="btnRenomearProjeto" class="secondary"><span id="icoRenomear"></span> Editar</button>
-        <button id="btnExcluirProjeto" class="danger"><span id="icoExcluir"></span> Excluir</button>
+        <button id="btnNovoProjeto" class="admin-only"><span id="icoNovo"></span> Projeto</button>
+        <button id="btnRenomearProjeto" class="secondary admin-only"><span id="icoRenomear"></span> Editar</button>
+        <button id="btnExcluirProjeto" class="danger admin-only"><span id="icoExcluir"></span> Excluir</button>
       </div>
     </div>
     <div class="panel">
       <h3>Mapas do projeto</h3>
       <div class="row"><select id="selMapa"></select></div>
       <div class="row">
-        <button id="btnNovoMapa"><span id="icoNovoMapa"></span> Mapa</button>
-        <button id="btnRenomearMapa" class="secondary"><span id="icoRenomearMapa"></span> Editar</button>
-        <button id="btnExcluirMapa" class="danger"><span id="icoExcluirMapa"></span> Excluir</button>
+        <button id="btnNovoMapa" class="admin-only"><span id="icoNovoMapa"></span> Mapa</button>
+        <button id="btnRenomearMapa" class="secondary admin-only"><span id="icoRenomearMapa"></span> Editar</button>
+        <button id="btnExcluirMapa" class="danger admin-only"><span id="icoExcluirMapa"></span> Excluir</button>
       </div>
-      <input type="file" id="planta" accept="image/*,.pdf" style="margin-top:6px">
-      <p class="dica">Carregue imagem (PNG/JPG) ou PDF — preserva a proporção real</p>
-      <div class="pdf-opcoes" id="pdfOpcoes">
+      <input type="file" id="planta" accept="image/*,.pdf" class="admin-only" style="margin-top:6px">
+      <p class="dica admin-only">Carregue imagem (PNG/JPG) ou PDF — preserva a proporção real</p>
+      <div class="pdf-opcoes admin-only" id="pdfOpcoes">
         <label>Página do PDF (total: <span id="pdfTotalPaginas">0</span>)</label>
         <select id="selPagina"></select>
         <label>Escala de renderização</label>
@@ -274,9 +314,9 @@
       </div>
     </div>
     <div class="panel">
-      <h3>Edição no mapa</h3>
-      <div class="row">
-        <button id="btnArrastar"><span id="icoArrastar"></span> Arrastar pins</button>
+      <h3>Visualização</h3>
+      <div class="row" style="margin-top:6px">
+        <button id="btnArrastar" class="admin-only"><span id="icoArrastar"></span> Arrastar pins</button>
       </div>
       <div class="row" style="margin-top:6px">
         <button id="btnEscurecer" class="secondary"><span id="icoEscurecer"></span> Escurecer mapa</button>
@@ -286,9 +326,9 @@
         <option value="area">ÁREA</option>
         <option value="material">MATERIAL</option>
       </select>
-      <p class="dica">Use o botão Adicionar na aba Itens. Posicione com Mover no balão ou no cartão.</p>
+      <p class="dica">Toque num pin ou num item para ver os detalhes e arquivos.</p>
     </div>
-    <div class="panel">
+    <div class="panel admin-only">
       <h3>Sistema</h3>
       <div class="row">
         <button id="btnExportar"><span id="icoBackup"></span> Backup</button>
@@ -311,8 +351,8 @@
   <div id="painelItens" class="painel" style="flex-direction:column;flex:1;overflow:hidden;">
     <div class="panel">
       <h3>Inventário de itens</h3>
-      <button id="btnNovoItem" style="width:100%;margin:8px 0 6px"><span id="icoNovoItem"></span> Adicionar item</button>
-      <p class="dica">Itens no mapa ficam em "No mapa". Clique num item para abrir o balão. Use Mover para posicionar.</p>
+      <button id="btnNovoItem" class="admin-only" style="width:100%;margin:8px 0 6px"><span id="icoNovoItem"></span> Adicionar item</button>
+      <p class="dica">Clique num item para abrir o balão no mapa e ver os anexos.</p>
       <label>Agrupar por</label>
       <select id="selGrupo">
         <option value="">Sem agrupamento</option>
@@ -399,6 +439,13 @@ var ICONES = {
   setaDir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
 };
 function ic(nome){ return ICONES[nome]||''; }
+
+// ===== CREDENCIAIS DO ADMIN (altere aqui) =====
+var USUARIO_ADMIN = 'admin';
+var SENHA_ADMIN   = 'multi123';
+
+var isAdmin = false;
+var funcao = null;
 
 (function(){
   try {
@@ -488,15 +535,47 @@ function togglePreviews(){
 $('togglePreviews').onclick = togglePreviews;
 $('btnFecharPreviews').onclick = function(){ $('painelPreviews').classList.remove('aberto'); $('togglePreviews').classList.remove('aberto'); $('togglePreviews').innerHTML=ic('setaEsq'); setTimeout(function(){ map.invalidateSize(); },350); };
 
-// ===== PREVISUALIZAÇÕES — ARQUIVOS, AGRUPADAS POR MATERIAL E QUANTIDADE (RECOLHIDAS, 2 COLUNAS) =====
+// ===== TELA DE ACESSO =====
+function entrarComo(f){
+  funcao = f;
+  isAdmin = (funcao === 'admin');
+  try{ sessionStorage.setItem('sgs_funcao', funcao); }catch(e){}
+  document.body.className = isAdmin ? 'modo-admin' : 'modo-fornecedor';
+  $('telaAcesso').style.display = 'none';
+  carregar();
+  renderizarTudo();
+  mostrarAba('mapa');
+  setTimeout(function(){ map.invalidateSize(); }, 150);
+}
+function sair(){
+  try{ sessionStorage.removeItem('sgs_funcao'); }catch(e){}
+  funcao = null; isAdmin = false;
+  $('admUsuario').value=''; $('admSenha').value=''; $('admErro').textContent=''; $('acessoAdmin').style.display='none';
+  $('telaAcesso').style.display = 'flex';
+}
+$('btnEntrarFornecedor').onclick = function(){ entrarComo('fornecedor'); };
+$('btnMostrarAdmin').onclick = function(){ $('acessoAdmin').style.display = 'block'; };
+$('btnVoltarAcesso').onclick = function(){ $('acessoAdmin').style.display = 'none'; $('admErro').textContent=''; };
+$('btnEntrarAdmin').onclick = function(){
+  var u = $('admUsuario').value.trim();
+  var s = $('admSenha').value;
+  if(u === USUARIO_ADMIN && s === SENHA_ADMIN){
+    $('admErro').textContent = '';
+    entrarComo('admin');
+  } else {
+    $('admErro').textContent = 'Usuário ou senha incorretos.';
+  }
+};
+$('admSenha').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ $('btnEntrarAdmin').click(); } });
+$('btnSair').onclick = sair;
+
+// ===== PREVISUALIZAÇÕES — ARQUIVOS, AGRUPADAS POR MATERIAL E QUANTIDADE =====
 function renderizarPreviews(){
   var box=$('previewsLista'); if(!box)return; box.innerHTML='';
   var m=getMapaAtual();
   if(!m){ box.innerHTML='<div class="vazio">Nenhum mapa selecionado</div>'; return; }
-  // Filtra apenas itens que têm arquivo (link) — fotos ficam de fora
   var comArquivo = m.itens.filter(function(i){ return i.arquivo && i.arquivo.trim()!==''; });
   if(!comArquivo.length){ box.innerHTML='<div class="vazio">Nenhum item com arquivo (link)</div>'; return; }
-  // 1º nível: material (estender/retrair) — abre RECOLHIDO
   var grupos={};
   comArquivo.forEach(function(item){
     var mat=(item.material||'').trim()||'(sem material)';
@@ -505,19 +584,18 @@ function renderizarPreviews(){
   });
   Object.keys(grupos).sort().forEach(function(mat){
     var lista=grupos[mat];
-    var grupo=document.createElement('div'); grupo.className='preview-grupo'; // sem 'aberto' = recolhido
+    var grupo=document.createElement('div'); grupo.className='preview-grupo';
     var gt=document.createElement('div'); gt.className='preview-grupo-titulo';
     gt.innerHTML='<span class="preview-grupo-seta">'+ic('chevron')+'</span><span class="preview-grupo-nome">'+mat+'</span><span class="preview-grupo-cont">'+lista.length+'</span>';
     gt.onclick=function(){ grupo.classList.toggle('aberto'); };
     grupo.appendChild(gt);
     var corpo=document.createElement('div'); corpo.className='preview-grupo-corpo';
-    // 2º nível: agrupa por nome base (quantidade), como na aba Itens — abre RECOLHIDO
     var porBase={};
     lista.forEach(function(i){ var b=baseNome(i); if(!porBase[b]) porBase[b]=[]; porBase[b].push(i); });
     Object.keys(porBase).sort().forEach(function(base){
       var itensBase=porBase[base];
       if(itensBase.length>1){
-        var gq=document.createElement('div'); gq.className='preview-qtd'; // sem 'aberto' = recolhido
+        var gq=document.createElement('div'); gq.className='preview-qtd';
         var cab=document.createElement('div'); cab.className='preview-qtd-cab';
         cab.innerHTML='<span class="preview-grupo-seta">'+ic('chevron')+'</span><b>'+base+' ('+itensBase.length+')</b><span class="preview-grupo-cont">'+itensBase.length+'</span>';
         cab.onclick=function(){ gq.classList.toggle('aberto'); };
@@ -570,6 +648,7 @@ function mostrarAba(aba){
 
 function baseNome(item){ return (item.item||'').replace(/\s\(\d+\)$/,''); }
 function atualizarHint(){
+  if(!isAdmin) return;
   var m=getMapaAtual();
   if(movendoId!=null && m){
     var item=m.itens.find(function(i){return i.id===movendoId;});
@@ -584,7 +663,7 @@ function atualizarHint(){
   }
 }
 
-map.on('click', function(e){ limparPinsDourados(); if(movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
+map.on('click', function(e){ limparPinsDourados(); if(isAdmin && movendoId!=null){ colocarItemNoMapa(e.latlng); return; } });
 
 function colocarItemNoMapa(latlng){
   var m=getMapaAtual(); if(!m) return;
@@ -625,9 +704,9 @@ function getMapa(pid,mid){ var p=getProjeto(pid); return p?p.mapas.find(function
 function getProjetoAtual(){ return getProjeto(projetoAtual); }
 function getMapaAtual(){ return getMapa(projetoAtual,mapaAtual); }
 function criarProjeto(nome){ var p={id:proximoIdProjeto++,nome:nome,mapas:[]}; projetos.push(p); projetoAtual=p.id; return p; }
-function excluirProjeto(id){ projetos=projetos.filter(function(p){return p.id!==id;}); if(projetoAtual===id){ projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null; } }
-function criarMapa(pid,nome){ var p=getProjeto(pid); if(!p)return; var m={id:proximoIdMapa++,nome:nome,imagem:null,larg:null,alt:null,itens:[]}; p.mapas.push(m); mapaAtual=m.id; return m; }
-function excluirMapa(pid,mid){ var p=getProjeto(pid); if(!p)return; p.mapas=p.mapas.filter(function(m){return m.id!==mid;}); if(mapaAtual===mid) mapaAtual=p.mapas.length?p.mapas[0].id:null; }
+function excluirProjeto(id){ if(!isAdmin) return; projetos=projetos.filter(function(p){return p.id!==id;}); if(projetoAtual===id){ projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null; } }
+function criarMapa(pid,nome){ if(!isAdmin) return null; var p=getProjeto(pid); if(!p)return; var m={id:proximoIdMapa++,nome:nome,imagem:null,larg:null,alt:null,itens:[]}; p.mapas.push(m); mapaAtual=m.id; return m; }
+function excluirMapa(pid,mid){ if(!isAdmin) return; var p=getProjeto(pid); if(!p)return; p.mapas=p.mapas.filter(function(m){return m.id!==mid;}); if(mapaAtual===mid) mapaAtual=p.mapas.length?p.mapas[0].id:null; }
 
 function renderizarTudo(){ renderizarProjetos(); renderizarMapas(); renderizarFiltros(); renderizarMapa(); renderizarItens(); atualizarBotaoArrastar(); if($('selCorPor'))$('selCorPor').value=corPor; }
 function renderizarProjetos(){ var sel=$('selProjeto'); if(!sel)return; sel.innerHTML=''; projetos.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.nome; if(p.id===projetoAtual)o.selected=true; sel.appendChild(o); }); }
@@ -654,7 +733,7 @@ function renderizarMapa(){
 function adicionarPin(item){
   var cor=corItem(item);
   var icone=L.divIcon({html:'<div style="background:'+cor+';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5)"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
-  var marker=L.marker([item.y,item.x],{icon:icone,draggable:modoArrastar}).addTo(map);
+  var marker=L.marker([item.y,item.x],{icon:icone,draggable:(isAdmin&&modoArrastar)}).addTo(map);
   var med=(item.largura&&item.altura)?('<b>'+item.largura+' x '+item.altura+' m</b>'):'';
   var rotuloCor = corPor==='material' ? 'Material: '+(item.material||'-') : 'Área: '+(item.area||'-');
   var caixaAnexos='';
@@ -667,10 +746,13 @@ function adicionarPin(item){
     if(temFotos) caixaAnexos+='<button onclick="abrirFoto('+item.id+',0)" style="width:100%;margin:2px 0;justify-content:center">'+ic('foto')+' Ver '+item.fotos.length+' foto(s)</button>';
     caixaAnexos+='</div></div>';
   }
-  var botoesBalao='<div class="balao-botoes">'
-    +'<button onclick="iniciarMovimento('+item.id+')">'+ic('mover')+' Mover</button>'
-    +'<button onclick="removerDoMapa('+item.id+')" class="danger">'+ic('removerMapa')+'</button>'
-    +'</div>';
+  var botoesBalao='';
+  if(isAdmin){
+    botoesBalao='<div class="balao-botoes">'
+      +'<button onclick="iniciarMovimento('+item.id+')">'+ic('mover')+' Mover</button>'
+      +'<button onclick="removerDoMapa('+item.id+')" class="danger">'+ic('removerMapa')+'</button>'
+      +'</div>';
+  }
   marker.bindPopup('<b>'+item.item+'</b><br><span style="color:'+cor+'">●</span> '+rotuloCor+'<br>Status: '+(item.status||'-')+'<br>Medidas: '+(med||'-')+(item.obs?'<br>Obs: '+item.obs:'')+caixaAnexos+botoesBalao);
   marker.on('click',function(){ destacaLista(item.id); destacarPinsGrupo(item); });
   marker.on('dragend',function(e){ var pos=e.target.getLatLng(); item.x=pos.lng; item.y=pos.lat; salvar(); e.target.closePopup(); e.target.openPopup(); });
@@ -678,6 +760,7 @@ function adicionarPin(item){
 }
 
 function removerDoMapa(id){
+  if(!isAdmin) return;
   var m=getMapaAtual(); if(!m) return;
   var item=m.itens.find(function(i){return i.id===id;});
   if(!item) return;
@@ -688,6 +771,7 @@ window.removerDoMapa = removerDoMapa;
 
 function atualizarBotaoArrastar(){ var b=$('btnArrastar'); if(!b)return; b.classList.toggle('ativo',modoArrastar); b.innerHTML=ic('arrastar')+' '+(modoArrastar?'Arrastar ativo':'Arrastar pins'); }
 function toggleArrastar(){
+  if(!isAdmin) return;
   modoArrastar=!modoArrastar; atualizarBotaoArrastar();
   var m=getMapaAtual();
   if(m)m.itens.forEach(function(i){ if(i._marker){ i._marker.options.draggable=modoArrastar; try{ if(i._marker.dragging) i._marker.dragging[modoArrastar?'enable':'disable'](); }catch(e){} } });
@@ -705,7 +789,7 @@ function renderizarItens(){
   if(!m){ box.innerHTML='<div class="vazio">Crie um mapa para começar</div>'; return; }
   var fa=$('filtroArea')?$('filtroArea').value:'', fs=$('filtroSetor')?$('filtroSetor').value:'', fst=$('filtroStatus')?$('filtroStatus').value:'';
   var itens=m.itens.filter(function(i){return (!fa||i.area===fa)&&(!fs||i.setor===fs)&&(!fst||i.status===fst);});
-  if(!itens.length){ box.innerHTML='<div class="vazio">Nenhum item. Importe um CSV na aba Mapa ou use o botão Adicionar.</div>'; return; }
+  if(!itens.length){ box.innerHTML='<div class="vazio">Nenhum item encontrado.</div>'; return; }
   var colocados = itens.filter(function(i){return i.colocado;});
   var naoColocados = itens.filter(function(i){return !i.colocado;});
   if(colocados.length) box.appendChild(criarGrupoStatus(ic('pin')+' No mapa', colocados, true));
@@ -793,23 +877,31 @@ function criarCardItem(item){
   var div=document.createElement('div'); div.className='item'; div.dataset.id=item.id;
   var med=(item.largura&&item.altura)?('<span class="medida">'+item.largura+'x'+item.altura+'m</span>'):'';
   var nfotos = (item.fotos&&item.fotos.length)?(' • '+item.fotos.length+' foto(s)'):'';
-  div.innerHTML='<span class="cor-pin" style="background:'+cor+'"></span><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+' • '+(item.status||'-')+(med?' • '+med:'')+nfotos+'</div><div class="acoes">'
-    +'<button data-acao="mover" style="background:#4498DC">'+ic('mover')+' Mover</button>'
-    +'<button data-acao="editar" class="secondary">'+ic('editar')+' Editar</button>'
-    +'<button data-acao="excluir" class="danger">'+ic('excluir')+' Excluir</button>'
-    +(item.arquivo?'<button data-acao="preview" class="secondary">'+ic('arquivo')+' Ver</button>':'')
-    +'<button data-acao="fotos" class="secondary">'+ic('foto')+' Fotos</button>'
-    +'</div>';
+  var botoes='';
+  if(isAdmin){
+    botoes+='<button data-acao="mover" style="background:#4498DC">'+ic('mover')+' Mover</button>';
+    botoes+='<button data-acao="editar" class="secondary">'+ic('editar')+' Editar</button>';
+    botoes+='<button data-acao="excluir" class="danger">'+ic('excluir')+' Excluir</button>';
+  }
+  if(item.arquivo) botoes+='<button data-acao="preview" class="secondary">'+ic('arquivo')+' Ver</button>';
+  botoes+='<button data-acao="fotos" class="secondary">'+ic('foto')+' Fotos</button>';
+  div.innerHTML='<span class="cor-pin" style="background:'+cor+'"></span><b>'+item.item+'</b><div class="meta">'+(item.area||'-')+' / '+(item.setor||'-')+' • '+(item.status||'-')+(med?' • '+med:'')+nfotos+'</div><div class="acoes">'+botoes+'</div>';
   div.onclick=function(e){ if(e.target.dataset.acao)return; destacarGrupo(item); destacarPinsGrupo(item); if(item.colocado){ map.setView([item.y,item.x],map.getZoom()); setTimeout(function(){ if(item._marker)item._marker.openPopup(); },150); } };
   var bm=div.querySelector('[data-acao="mover"]'); if(bm)bm.onclick=function(e){ e.stopPropagation(); iniciarMovimento(item.id); };
   var be=div.querySelector('[data-acao="editar"]'); if(be)be.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
   var bx=div.querySelector('[data-acao="excluir"]'); if(bx)bx.onclick=function(e){ e.stopPropagation(); excluirItem(item.id); };
   var bp=div.querySelector('[data-acao="preview"]'); if(bp)bp.onclick=function(e){ e.stopPropagation(); abrirPreview(item.arquivo); };
-  var bf=div.querySelector('[data-acao="fotos"]'); if(bf)bf.onclick=function(e){ e.stopPropagation(); editandoItem=item; abrirModal(); };
+  var bf=div.querySelector('[data-acao="fotos"]'); if(bf)bf.onclick=function(e){
+    e.stopPropagation();
+    if(isAdmin){ editandoItem=item; abrirModal(); }
+    else if(item.fotos&&item.fotos.length){ abrirFoto(item.id,0); }
+    else { alert('Este item não tem fotos.'); }
+  };
   return div;
 }
 
 function iniciarMovimento(id){
+  if(!isAdmin) return;
   movendoId=id;
   $('moveHint').classList.add('visivel');
   map.getContainer().style.cursor='crosshair';
@@ -877,7 +969,7 @@ function destacaLista(id){
   }
   if(item) destacarGrupo(item);
 }
-function excluirItem(id){ var m=getMapaAtual(); if(!m)return; m.itens=m.itens.filter(function(i){return i.id!==id;}); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros(); }
+function excluirItem(id){ if(!isAdmin) return; var m=getMapaAtual(); if(!m)return; m.itens=m.itens.filter(function(i){return i.id!==id;}); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros(); }
 
 function abrirFoto(id, idx){
   var m=getMapaAtual(); if(!m)return;
@@ -917,6 +1009,7 @@ function fecharPreview(){ $('previewModal').classList.remove('aberto'); $('previ
 window.fecharPreview = fecharPreview;
 
 function abrirModal(){
+  if(!isAdmin) return;
   var m=getMapaAtual(); if(!m){ alert('Crie um mapa primeiro.'); return; }
   var e=editandoItem;
   fotosNovas = (e&&e.fotos)?e.fotos.slice():[];
@@ -936,6 +1029,7 @@ function abrirModal(){
 }
 function fecharModal(){ if($('modal'))$('modal').classList.remove('aberto'); editandoItem=null; fotosNovas=[]; }
 function salvarItem(){
+  if(!isAdmin) return;
   var m=getMapaAtual(); if(!m)return;
   if(!$('fItem'))return;
   var item=$('fItem').value.trim();
@@ -951,6 +1045,7 @@ function salvarItem(){
 
 function temPdfJs(){ return typeof window.pdfjsLib!=='undefined'; }
 async function carregarPDF(data){
+  if(!isAdmin) return;
   if(!temPdfJs()){ alert('PDF.js não carregou (bloqueado por segurança). Use PNG/JPG.'); return; }
   try{
     var pdf=await pdfjsLib.getDocument({data:data,disableWorker:true}).promise;
@@ -961,6 +1056,7 @@ async function carregarPDF(data){
   }catch(err){ alert('Não foi possível ler o PDF: '+err.message); }
 }
 async function aplicarPDF(){
+  if(!isAdmin) return;
   var m=getMapaAtual(); if(!m)return;
   if(!pdfBuffer){ alert('Carregue um PDF primeiro.'); return; }
   if(!temPdfJs()){ alert('PDF.js não carregou. Use PNG/JPG.'); return; }
@@ -993,6 +1089,7 @@ function num(v){ if(v==null) return null; var s = String(v).trim().replace(/[^\d
 function escapaCSV(v){ v=(v==null?'':String(v)); return /[",\n;|]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 
 function exportarCSV(){
+  if(!isAdmin) return;
   var m=getMapaAtual();
   if(!m||!m.itens.length){ alert('Nenhum item para exportar no mapa atual.'); return; }
   var linhas=[['AREA','SETOR','ITEM','STATUS','MATERIAL','Largura','Altura','QTD','ARQUIVO','OBSERVACAO','X','Y'].join(',')];
@@ -1004,6 +1101,7 @@ function exportarCSV(){
 }
 
 function importarCSV(file){
+  if(!isAdmin) return;
   var m=getMapaAtual();
   if(!m){ alert('Selecione um mapa antes de importar.'); return; }
   var reader=new FileReader();
@@ -1048,11 +1146,7 @@ function importarCSV(file){
       y: acharColuna(['y'])
     };
     var inicioDados = temSubCab ? linhaSub + 1 : linhaCab + 1;
-
-    // Escolha do modo de importação
     var substituir = confirm('Como deseja importar o CSV?\n\nOK = Substituir tudo (apaga os itens atuais do mapa e importa do zero)\nCancelar = Corresponder (atualiza os existentes mantendo a posição no mapa e cria só o que falta)');
-
-    // Agrupa as linhas do CSV por nome base
     var gruposCSV={};
     for(var r=inicioDados;r<linhas.length;r++){
       var l=linhas[r]; if(!l||!l.length||l.every(function(c){return !c;}))continue;
@@ -1061,8 +1155,6 @@ function importarCSV(file){
       if(!gruposCSV[base]) gruposCSV[base]=[];
       gruposCSV[base].push(l);
     }
-
-    // Monta as unidades de cada grupo (expandindo a quantidade)
     var unidadesCSV={};
     Object.keys(gruposCSV).forEach(function(base){
       var lista=[];
@@ -1083,21 +1175,13 @@ function importarCSV(file){
       });
       unidadesCSV[base]=lista;
     });
-
     var cont=0;
     if(substituir){
-      // Remove todos os itens atuais do mapa e importa do zero
       m.itens=[];
       Object.keys(unidadesCSV).forEach(function(base){
         var lista=unidadesCSV[base];
         lista.forEach(function(d,u){
-          m.itens.push({
-            id:proximoIdItem++,
-            colocado:false, x:null, y:null,
-            item:(lista.length>1?(base+' ('+(u+1)+')'):base),
-            area:d.area, setor:d.setor, status:d.status, material:d.material,
-            largura:d.largura, altura:d.altura, arquivo:d.arquivo, obs:d.obs, fotos:[]
-          });
+          m.itens.push({id:proximoIdItem++,colocado:false,x:null,y:null,item:(lista.length>1?(base+' ('+(u+1)+')'):base),area:d.area,setor:d.setor,status:d.status,material:d.material,largura:d.largura,altura:d.altura,arquivo:d.arquivo,obs:d.obs,fotos:[]});
           cont++;
         });
       });
@@ -1106,15 +1190,8 @@ function importarCSV(file){
       alert('Substituído: '+cont+' itens importados (os antigos foram removidos). Posicione os itens com Mover.');
       return;
     }
-
-    // Modo corresponder: agrupa existentes por nome base
     var existentes={};
-    m.itens.forEach(function(it){
-      var b=baseNome(it);
-      if(!existentes[b]) existentes[b]=[];
-      existentes[b].push(it);
-    });
-
+    m.itens.forEach(function(it){ var b=baseNome(it); if(!existentes[b]) existentes[b]=[]; existentes[b].push(it); });
     var contNovos=0, contAtualizados=0;
     Object.keys(unidadesCSV).forEach(function(base){
       var lista=unidadesCSV[base];
@@ -1122,28 +1199,14 @@ function importarCSV(file){
       for(var u=0; u<lista.length; u++){
         if(u < listaExistente.length){
           var ex=listaExistente[u];
-          ex.area=lista[u].area;
-          ex.setor=lista[u].setor;
-          ex.status=lista[u].status;
-          ex.material=lista[u].material;
-          ex.largura=lista[u].largura;
-          ex.altura=lista[u].altura;
-          ex.arquivo=lista[u].arquivo;
-          ex.obs=lista[u].obs;
+          ex.area=lista[u].area; ex.setor=lista[u].setor; ex.status=lista[u].status; ex.material=lista[u].material; ex.largura=lista[u].largura; ex.altura=lista[u].altura; ex.arquivo=lista[u].arquivo; ex.obs=lista[u].obs;
           contAtualizados++;
         } else {
-          m.itens.push({
-            id:proximoIdItem++,
-            colocado:false, x:null, y:null,
-            item:(lista.length>1?(base+' ('+(u+1)+')'):base),
-            area:lista[u].area, setor:lista[u].setor, status:lista[u].status, material:lista[u].material,
-            largura:lista[u].largura, altura:lista[u].altura, arquivo:lista[u].arquivo, obs:lista[u].obs, fotos:[]
-          });
+          m.itens.push({id:proximoIdItem++,colocado:false,x:null,y:null,item:(lista.length>1?(base+' ('+(u+1)+')'):base),area:lista[u].area,setor:lista[u].setor,status:lista[u].status,material:lista[u].material,largura:lista[u].largura,altura:lista[u].altura,arquivo:lista[u].arquivo,obs:lista[u].obs,fotos:[]});
           contNovos++;
         }
       }
     });
-
     salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
     mostrarAba('itens');
     alert('Importação concluída: '+contAtualizados+' atualizados, '+contNovos+' novos. Itens já posicionados mantêm sua posição no mapa.');
@@ -1163,6 +1226,7 @@ function parseCSV(texto,delim){
 }
 
 function exportar(){
+  if(!isAdmin) return;
   var dados={projetos:projetos,proximoIdProjeto:proximoIdProjeto,proximoIdMapa:proximoIdMapa,proximoIdItem:proximoIdItem,corPor:corPor};
   try{
     var json=JSON.stringify(dados, limparParaJSON, 2);
@@ -1179,15 +1243,11 @@ function exportar(){
       +'<br><button onclick="this.parentNode.parentNode.remove()" style="margin-top:14px;background:#3a3f46">Fechar</button>'
       +'</div>';
     document.body.appendChild(modal);
-    try{
-      var a=document.createElement('a'); a.href=url; a.download=nome;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }catch(e){}
-  }catch(e){
-    alert('Não foi possível gerar o backup: '+e.message);
-  }
+    try{ var a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); document.body.removeChild(a); }catch(e){}
+  }catch(e){ alert('Não foi possível gerar o backup: '+e.message); }
 }
 function importar(file){
+  if(!isAdmin) return;
   var reader=new FileReader();
   reader.onload=function(ev){
     try{
@@ -1204,6 +1264,7 @@ function importar(file){
 
 // ===== BACKUP E RESTAURAÇÃO POR PROJETO (com opção de mesclar) =====
 function exportarProjeto(){
+  if(!isAdmin) return;
   var p=getProjetoAtual();
   if(!p){ alert('Selecione um projeto primeiro.'); return; }
   try{
@@ -1228,6 +1289,7 @@ function exportarProjeto(){
 }
 
 function importarProjeto(file){
+  if(!isAdmin) return;
   var reader=new FileReader();
   reader.onload=function(ev){
     try{
@@ -1283,6 +1345,7 @@ $('btnRenomearMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; var
 $('btnExcluirMapa').onclick=function(){ var m=getMapaAtual(); if(!m)return; if(confirm('Excluir mapa "'+m.nome+'"?')){ excluirMapa(projetoAtual,m.id); salvar(); renderizarMapas(); renderizarMapa(); renderizarItens(); } };
 
 $('planta').addEventListener('change',function(e){
+  if(!isAdmin) return;
   var m=getMapaAtual(); if(!m)return;
   var file=e.target.files[0]; if(!file)return;
   var isPDF=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
@@ -1333,8 +1396,20 @@ $('fFotosInput').addEventListener('change',function(e){
   this.value='';
 });
 
-carregar();
-renderizarTudo();
+// ===== INÍCIO: mostra a tela de acesso ou entra direto (sessão ativa) =====
+(function(){
+  try{
+    var f = sessionStorage.getItem('sgs_funcao');
+    if(f === 'admin' || f === 'fornecedor'){
+      entrarComo(f);
+    } else {
+      $('telaAcesso').style.display = 'flex';
+      document.body.className = '';
+    }
+  }catch(e){
+    $('telaAcesso').style.display = 'flex';
+  }
+})();
 
 if(window.innerWidth<=900){
   $('sidebar').classList.add('recolhida');
