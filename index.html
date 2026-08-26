@@ -36,9 +36,13 @@
   .acesso-botoes button { width:100%; padding:13px; font-size:15px; justify-content:center; border-radius:8px; font-weight:700; }
   #btnEntrarFornecedor { background:#743FD7; }
   #btnMostrarAdmin { background:#3a3f46; }
-  #acessoAdmin { margin-top:14px; border-top:1px solid #333; padding-top:14px; text-align:left; }
+  #acessoAdmin { margin-top:14px; border-top:1px solid #333; padding-top:14px; text-align:left; display:none; }
   #acessoAdmin label { font-size:12px; color:#999; display:block; margin-top:8px; }
   .acesso-erro { color:#F51E16; font-size:12px; margin-top:10px; text-align:center; font-weight:700; }
+
+  /* ===== TOAST (AVISO VISUAL) ===== */
+  #toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); z-index:9500; background:#61D835; color:#fff; padding:13px 24px; border-radius:10px; font-weight:700; font-size:14px; box-shadow:0 6px 22px rgba(0,0,0,.55); display:none; align-items:center; gap:8px; max-width:92vw; text-align:center; font-family:inherit; }
+  #toast.visivel { display:flex; }
 
   #sidebar { width:400px; min-width:320px; background:#23262b; display:flex; flex-direction:column; border-right:1px solid #333; transition:margin-left .3s ease; }
   #sidebar.recolhida { margin-left:-400px; }
@@ -49,8 +53,10 @@
   #sidebar header .logo-top { max-height:42px; margin-bottom:8px; background:transparent; border:none; border-radius:0; padding:0; filter:brightness(0) invert(1); }
   #sidebar header h1 { margin:0; font-size:26px; letter-spacing:4px; font-weight:900; }
   #sidebar header .sub { font-size:11px; color:#ffd9d6; margin-top:2px; letter-spacing:1px; font-weight:300; }
-  #btnSair { margin-top:8px; background:rgba(255,255,255,.15); color:#fff; font-size:11px; padding:3px 12px; border-radius:6px; border:none; cursor:pointer; font-weight:700; }
-  #banner { background:#743FD7; color:#fff; font-size:12px; padding:5px 14px; font-weight:700; text-align:center; }
+  #banner { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#743FD7; color:#fff; font-size:12px; padding:5px 10px; font-weight:700; text-align:center; }
+  #banner #bannerTexto { flex:1; text-align:center; }
+  #btnSair { background:#F51E16; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-weight:700; cursor:pointer; font-size:12px; font-family:inherit; flex-shrink:0; }
+  #btnSair:hover { opacity:.9; }
   #tabs { display:flex; background:#23262b; border-bottom:1px solid #333; }
   #tabs button { flex:1; border:none; padding:10px; cursor:pointer; background:#23262b; font-weight:500; font-size:13px; color:#888; display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; }
   #tabs button.ativo { background:#2c3036; color:#fff; border-bottom:3px solid #61D835; font-weight:700; }
@@ -193,8 +199,9 @@
   .item.destaque-suave { background:#3b4a5c !important; box-shadow:inset 0 0 0 1px rgba(68,152,220,.55); }
   .item.destaque-claro { background:#3d4a5e !important; }
 
-  /* ===== FORNECEDOR: esconde ferramentas de edição ===== */
+  /* ===== VISIBILIDADE POR PERFIL ===== */
   body.modo-fornecedor .admin-only { display:none !important; }
+  body.modo-admin .fornecedor-only { display:none !important; }
 
   @media (max-width: 900px){
     #sidebar { position:fixed; top:0; left:0; bottom:0; width:86%; max-width:340px; z-index:1600; margin-left:0; transform:translateX(-100%); transition:transform .3s ease; box-shadow:4px 0 16px rgba(0,0,0,.55); overflow-y:auto !important; }
@@ -247,7 +254,7 @@
 
 <div id="telaAcesso">
   <div class="acesso-card">
-    <div class="acesso-logo">SGS</div>
+    <div class="acesso-logo">S<span>G</span>S</div>
     <div class="acesso-sub">Sistema de Geolocalização de Sinalização</div>
     <div class="acesso-botoes">
       <button id="btnEntrarFornecedor">Entrar como Fornecedor</button>
@@ -265,6 +272,8 @@
   </div>
 </div>
 
+<div id="toast"></div>
+
 <button id="toggleBtn" title="Recolher/expandir menu"></button>
 <button id="togglePreviews" title="Previsualizações dos arquivos"></button>
 
@@ -273,9 +282,8 @@
     <img id="logoTop" class="logo-top" src="logo.png" alt="MULTI" onerror="this.style.display='none'">
     <h1>SGS</h1>
     <div class="sub">Sistema de Geolocalização de Sinalização</div>
-    <div><button id="btnSair">Sair</button></div>
   </header>
-  <div id="banner">Versão v46 — Fornecedor / Admin</div>
+  <div id="banner"><span id="bannerTexto">SGS</span><button id="btnSair">Sair</button></div>
 
   <div id="tabs">
     <button id="tabMapa" class="ativo"><span id="icoTabMapa"></span> Mapa</button>
@@ -290,6 +298,10 @@
         <button id="btnNovoProjeto" class="admin-only"><span id="icoNovo"></span> Projeto</button>
         <button id="btnRenomearProjeto" class="secondary admin-only"><span id="icoRenomear"></span> Editar</button>
         <button id="btnExcluirProjeto" class="danger admin-only"><span id="icoExcluir"></span> Excluir</button>
+      </div>
+      <div class="row fornecedor-only" style="margin-top:6px">
+        <button id="btnCarregarProjeto"><span id="icoCarregar"></span> Carregar projeto</button>
+        <input type="file" id="importProjetoForn" accept=".json" style="display:none">
       </div>
     </div>
     <div class="panel">
@@ -446,6 +458,7 @@ var SENHA_ADMIN   = 'multi123';
 
 var isAdmin = false;
 var funcao = null;
+var toastTimer = null;
 
 (function(){
   try {
@@ -512,8 +525,20 @@ if($('icoProjUp'))$('icoProjUp').innerHTML=ic('restaurar');
 $('icoCsvDown').innerHTML=ic('backup');
 $('icoCsvUp').innerHTML=ic('restaurar');
 if($('icoNovoItem'))$('icoNovoItem').innerHTML=ic('mais');
+if($('icoCarregar'))$('icoCarregar').innerHTML=ic('restaurar');
 $('toggleBtn').innerHTML=ic('setaEsq');
 $('togglePreviews').innerHTML=ic('setaEsq');
+
+// ===== AVISO VISUAL (TOAST) =====
+function mostrarAviso(msg, ok){
+  var t=$('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.background = (ok === false) ? '#F51E16' : '#61D835';
+  t.classList.add('visivel');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('visivel'); }, 2800);
+}
 
 function toggleSidebar(){
   var sb=$('sidebar'), btn=$('toggleBtn');
@@ -541,6 +566,7 @@ function entrarComo(f){
   isAdmin = (funcao === 'admin');
   try{ sessionStorage.setItem('sgs_funcao', funcao); }catch(e){}
   document.body.className = isAdmin ? 'modo-admin' : 'modo-fornecedor';
+  $('bannerTexto').textContent = isAdmin ? 'Modo Admin' : 'Modo Fornecedor';
   $('telaAcesso').style.display = 'none';
   carregar();
   renderizarTudo();
@@ -550,6 +576,8 @@ function entrarComo(f){
 function sair(){
   try{ sessionStorage.removeItem('sgs_funcao'); }catch(e){}
   funcao = null; isAdmin = false;
+  document.body.className = '';
+  $('bannerTexto').textContent = 'SGS';
   $('admUsuario').value=''; $('admSenha').value=''; $('admErro').textContent=''; $('acessoAdmin').style.display='none';
   $('telaAcesso').style.display = 'flex';
 }
@@ -1041,6 +1069,7 @@ function salvarItem(){
   }
   fecharModal(); salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
   mostrarAba('itens');
+  mostrarAviso('Item salvo com sucesso');
 }
 
 function temPdfJs(){ return typeof window.pdfjsLib!=='undefined'; }
@@ -1187,7 +1216,7 @@ function importarCSV(file){
       });
       salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
       mostrarAba('itens');
-      alert('Substituído: '+cont+' itens importados (os antigos foram removidos). Posicione os itens com Mover.');
+      mostrarAviso('CSV importado: '+cont+' itens (substituído)');
       return;
     }
     var existentes={};
@@ -1209,7 +1238,7 @@ function importarCSV(file){
     });
     salvar(); renderizarMapa(); renderizarItens(); renderizarFiltros();
     mostrarAba('itens');
-    alert('Importação concluída: '+contAtualizados+' atualizados, '+contNovos+' novos. Itens já posicionados mantêm sua posição no mapa.');
+    mostrarAviso('CSV: '+contAtualizados+' atualizados, '+contNovos+' novos');
   };
   reader.readAsText(file);
 }
@@ -1256,13 +1285,13 @@ function importar(file){
       projetos=d.projetos; proximoIdProjeto=d.proximoIdProjeto||1; proximoIdMapa=d.proximoIdMapa||1; proximoIdItem=d.proximoIdItem||1;
       projetoAtual=projetos.length?projetos[0].id:null; mapaAtual=projetoAtual?(getProjetoAtual().mapas[0]?getProjetoAtual().mapas[0].id:null):null;
       corPor=d.corPor||'area';
-      salvar(); renderizarTudo(); alert('Restaurado com sucesso!');
-    }catch(e){ alert('Arquivo inválido.'); }
+      salvar(); renderizarTudo(); mostrarAviso('Backup restaurado com sucesso');
+    }catch(e){ mostrarAviso('Arquivo inválido', false); }
   };
   reader.readAsText(file);
 }
 
-// ===== BACKUP E RESTAURAÇÃO POR PROJETO (com opção de mesclar) =====
+// ===== BACKUP E RESTAURAÇÃO POR PROJETO (substituir / mesclar) — disponível p/ ADMIN e FORNECEDOR =====
 function exportarProjeto(){
   if(!isAdmin) return;
   var p=getProjetoAtual();
@@ -1289,7 +1318,6 @@ function exportarProjeto(){
 }
 
 function importarProjeto(file){
-  if(!isAdmin) return;
   var reader=new FileReader();
   reader.onload=function(ev){
     try{
@@ -1300,7 +1328,7 @@ function importarProjeto(file){
       var existente=projetos.find(function(x){return x.nome===nome;});
       var mesclar=false;
       if(existente){
-        mesclar=confirm('Já existe um projeto com o nome "'+nome+'".\n\nOK = Mesclar (substituir o projeto existente pelos dados do backup)\nCancelar = Criar cópia');
+        mesclar=confirm('Já existe um projeto com o nome "'+nome+'".\n\nOK = Substituir o projeto existente pelos dados do backup\nCancelar = Criar cópia');
       }
       var novosMapas=[];
       proj.mapas.forEach(function(m){
@@ -1316,7 +1344,7 @@ function importarProjeto(file){
         projetoAtual=existente.id;
         mapaAtual=novosMapas.length?novosMapas[0].id:null;
         salvar(); renderizarTudo();
-        alert('Projeto "'+nome+'" mesclado (substituído) com sucesso.');
+        mostrarAviso('Projeto "'+nome+'" substituído com sucesso');
       } else {
         var base=nome, n=2;
         while(projetos.some(function(x){return x.nome===base;})){ base=nome+' ('+n+')'; n++; }
@@ -1325,9 +1353,9 @@ function importarProjeto(file){
         projetoAtual=novo.id;
         mapaAtual=novosMapas.length?novosMapas[0].id:null;
         salvar(); renderizarTudo();
-        alert('Projeto "'+nome+'" restaurado como "'+base+'".');
+        mostrarAviso('Projeto "'+nome+'" carregado com sucesso');
       }
-    }catch(e){ alert('Arquivo inválido. Use um backup de projeto gerado pelo sistema.'); }
+    }catch(e){ mostrarAviso('Arquivo inválido. Use um backup de projeto.', false); }
   };
   reader.readAsText(file);
 }
@@ -1356,7 +1384,7 @@ $('planta').addEventListener('change',function(e){
     r2.onload=function(ev){
       var dataUrl=ev.target.result;
       var img=new Image();
-      img.onload=function(){ m.imagem=dataUrl; m.larg=img.width; m.alt=img.height; salvar(); renderizarMapa(); };
+      img.onload=function(){ m.imagem=dataUrl; m.larg=img.width; m.alt=img.height; salvar(); renderizarMapa(); mostrarAviso('Planta carregada no mapa'); };
       img.src=dataUrl;
     };
     r2.readAsDataURL(file);
@@ -1383,6 +1411,10 @@ $('filtroStatus').addEventListener('change',renderizarItens);
 $('selGrupo').addEventListener('change',renderizarItens);
 $('btnSalvar').onclick=salvarItem;
 $('btnCancelar').onclick=fecharModal;
+
+// ===== FORNECEDOR: CARREGAR PROJETO =====
+$('btnCarregarProjeto').onclick=function(){ if($('importProjetoForn'))$('importProjetoForn').click(); };
+$('importProjetoForn').addEventListener('change',function(e){ if(e.target.files[0])importarProjeto(e.target.files[0]); this.value=''; });
 
 $('fFotosInput').addEventListener('change',function(e){
   var files=e.target.files; if(!files||!files.length)return;
